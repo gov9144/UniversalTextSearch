@@ -24,8 +24,13 @@
       ]
     },
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "owner": "gov9144",
+      "repo": "UniversalTextSearch"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^5.30.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",
