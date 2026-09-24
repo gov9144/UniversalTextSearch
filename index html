@@ -1,100 +1,77 @@
-<!--
-  ════════════════════════════════════════════════════════════════
-  UNIVERSAL TEXT SEARCH — Blogger embed build
-  ════════════════════════════════════════════════════════════════
-  HOW TO EMBED IN A BLOGGER POST:
-    1. Open the post editor → switch to "HTML view" (NOT "Compose").
-    2. Paste this entire file's contents into the post body.
-    3. Publish/Update WITHOUT ever switching back to "Compose" view
-       first — toggling to Compose can mangle or strip the <script>
-       and <style> blocks. If you need to re-edit later, always
-       re-open in HTML view directly.
-    4. This embeds as a single bounded "card" (default ~760px tall,
-       see --embed-height in the CSS below) that scrolls internally,
-       so it won't take over the whole page like the standalone tool
-       does. Adjust --embed-height in the :root-equivalent #uts-root
-       rule below if you want it taller/shorter for your template.
-    5. All element IDs are prefixed "uts-" and all global CSS resets
-       are scoped to #uts-root, so this should not visually affect
-       the rest of your blog theme.
-    6. Known limitation: if you embed this tool more than once on the
-       same page (e.g. two different posts both showing it on your
-       blog's homepage feed), only the first instance will respond to
-       clicks, because HTML element IDs must be unique per page. Embed
-       it on a dedicated post/page (linked from elsewhere) rather than
-       a page that lists multiple posts at once.
-  ════════════════════════════════════════════════════════════════
--->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Text Search — Local Document Search</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-#uts-root {
-  --bg:#eef2f7; --surface:#fff; --surface2:#f4f7fb; --surface3:#e8edf5;
-  --border:#c8d4e3; --border2:#a0b0c8;
-  --pri:#0f766e; --pri-d:#0d5c57; --pri-l:#0d9488; --pri-bg:#f0fdfa; --pri-br:#5eead4;
-  --text:#0c1526; --text2:#334155; --text3:#64748b;
+:root {
+  --bg:#f0f4f8; --surface:#fff; --surface2:#f8fafc; --surface3:#f1f5f9;
+  --border:#e2e8f0; --border2:#cbd5e1;
+  --pri:#0f766e; --pri-d:#0d5c57; --pri-l:#0d9488; --pri-bg:#f0fdfa; --pri-br:#99f6e4;
+  --text:#0f172a; --text2:#475569; --text3:#94a3b8;
   --green:#059669; --green-bg:#f0fdf4; --green-br:#a7f3d0;
   --red:#dc2626; --red-bg:#fef2f2; --red-br:#fecaca;
   --amber:#d97706; --amber-bg:#fffbeb; --amber-br:#fde68a;
   --blue:#2563eb; --blue-bg:#eff6ff; --blue-br:#bfdbfe;
   --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-br:#ddd6fe;
-  --sh:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.06);
-  --sh-md:0 4px 16px rgba(15,23,42,.10);
-  --sh-lg:0 8px 32px rgba(15,23,42,.14);
-  --r:10px; --r-sm:7px; --r-xs:4px;
+  --sh:0 1px 3px rgba(15,23,42,.07),0 1px 2px rgba(15,23,42,.05);
+  --sh-md:0 4px 16px rgba(15,23,42,.09);
+  --sh-lg:0 8px 32px rgba(15,23,42,.12);
+  --r:10px; --r-sm:6px; --r-xs:4px;
   --font:'Plus Jakarta Sans',system-ui,sans-serif;
   --mono:'JetBrains Mono','Courier New',monospace;
-  --sidebar:400px; --hdr:56px;
-  --embed-height:760px;
-
-  /* Scoped so this never bleeds into the surrounding blog theme */
-  font-family:var(--font);color:var(--text);font-size:14px;line-height:1.5;
-  position:relative;
-  max-width:100%;
-  border-radius:var(--r);
-  box-shadow:var(--sh-md);
-  overflow:hidden;
+  --sidebar:370px; --hdr:54px;
 }
-#uts-root, #uts-root *, #uts-root *::before, #uts-root *::after{box-sizing:border-box}
-#uts-root *{margin:0;padding:3px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Layout ── */
-#uts-app{display:flex;flex-direction:column;height:var(--embed-height);background:var(--bg)}
-#uts-hdr{height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);
+/* ── Blogger-safe scoping: reset only inside the widget ── */
+#uts-app *,#uts-app *::before,#uts-app *::after{box-sizing:border-box}
+
+/* ── Layout — contained widget, not full-screen ── */
+#uts-app{
+  font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;
+  line-height:1.5;display:flex;flex-direction:column;height:700px;min-height:500px;
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--sh-lg);isolation:isolate;
+}
+#hdr{height:var(--hdr);background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;box-shadow:var(--sh)}
-#uts-body{flex:1;display:flex;min-height:0}
-#uts-sidebar{width:var(--sidebar);flex-shrink:0;border-right:2px solid var(--border);
-  background:#f0f4fa;overflow-y:auto;display:flex;flex-direction:column;gap:0}
-#uts-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+#body{flex:1;display:flex;min-height:0;overflow:hidden}
+#sidebar{width:var(--sidebar);flex-shrink:0;border-right:1px solid var(--border);
+  background:var(--surface2);overflow-y:auto;display:flex;flex-direction:column;gap:0}
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
 
 /* ── Header ── */
 .hdr-brand{display:flex;align-items:center;gap:10px}
-.hdr-logo{width:34px;height:34px;background:var(--pri);border-radius:8px;
+.hdr-logo{width:32px;height:32px;background:var(--pri);border-radius:8px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .hdr-logo svg{color:#fff}
 .hdr-title{font-size:1rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
-.hdr-sub{font-size:.72rem;color:var(--text3);margin-top:1px}
+.hdr-sub{font-size:.7rem;color:var(--text3);margin-top:1px}
 .hdr-spacer{flex:1}
 .privacy-badge{display:flex;align-items:center;gap:6px;background:var(--green-bg);
   border:1px solid var(--green-br);border-radius:20px;padding:5px 12px;
-  font-size:.75rem;font-weight:600;color:var(--green)}
+  font-size:.72rem;font-weight:600;color:var(--green)}
 .privacy-badge svg{flex-shrink:0}
 
 /* ── Panel (sidebar sections) ── */
-.panel{border-bottom:2px solid var(--border);padding:0}
-.panel-hdr{display:flex;align-items:center;gap:9px;padding:13px 16px;cursor:pointer;
-  user-select:none;background:#e8eef7;transition:background .15s}
-.panel-hdr:hover{background:#dde5f2}
-.panel-hdr.open{background:#d6dff0;border-bottom:1px solid var(--border)}
-.panel-title{font-size:.9rem;font-weight:700;color:var(--text);flex:1;letter-spacing:-.01em}
-.panel-badge{font-size:.72rem;background:var(--pri-bg);color:var(--pri);
-  border:1px solid var(--pri-br);border-radius:20px;padding:2px 9px;font-weight:700}
-.panel-arrow{color:var(--text3);font-size:.7rem;transition:transform .2s}
+.panel{border-bottom:1px solid var(--border);padding:0}
+.panel-hdr{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;
+  user-select:none;background:var(--surface2);transition:background .15s}
+.panel-hdr:hover{background:var(--surface3)}
+.panel-hdr.open{background:var(--surface)}
+.panel-title{font-size:.78rem;font-weight:600;color:var(--text);flex:1}
+.panel-badge{font-size:.65rem;background:var(--pri-bg);color:var(--pri);
+  border:1px solid var(--pri-br);border-radius:20px;padding:2px 7px;font-weight:600}
+.panel-arrow{color:var(--text3);font-size:.65rem;transition:transform .2s}
 .panel-hdr.open .panel-arrow{transform:rotate(180deg)}
-.panel-body{padding:14px 16px;background:#fff;display:none}
+.panel-body{padding:12px 14px;background:var(--surface);display:none}
 .panel-hdr.open + .panel-body{display:block}
 
 /* ── Drop zone ── */
@@ -102,40 +79,40 @@
   text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--surface)}
 .dropzone:hover,.dropzone.over{border-color:var(--pri);background:var(--pri-bg)}
 .dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.dropzone .dz-icon{color:var(--text3);margin-bottom:8px;opacity:.55}
-.dropzone p{font-size:.88rem;color:var(--text2);font-weight:500}
+.dropzone .dz-icon{color:var(--text3);margin-bottom:6px;opacity:.6}
+.dropzone p{font-size:.78rem;color:var(--text2)}
 .dropzone strong{color:var(--pri)}
-.dropzone .dz-hint{font-size:.77rem;color:var(--text3);margin-top:4px}
-.mode-tabs{display:flex;gap:5px;margin-bottom:10px}
-.mtab{padding:7px 14px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;
-  border:1px solid var(--border2);background:#fff;color:var(--text2);
+.dropzone .dz-hint{font-size:.68rem;color:var(--text3);margin-top:3px}
+.mode-tabs{display:flex;gap:4px;margin-bottom:8px}
+.mtab{padding:5px 12px;border-radius:5px;font-size:.72rem;font-weight:600;cursor:pointer;
+  border:1px solid var(--border2);background:transparent;color:var(--text2);
   transition:all .14s;font-family:var(--font)}
 .mtab.active{background:var(--pri);border-color:var(--pri);color:#fff}
 
 /* ── File chips in sidebar ── */
 .file-list{display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:140px;overflow-y:auto}
 .f-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);
-  border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:.8rem}
-.f-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:.72rem}
+.f-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .f-dot.ok{background:var(--green)}
 .f-dot.err{background:var(--red)}
 .f-dot.loading{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .f-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-family:var(--mono)}
-.f-size{font-size:.72rem;color:var(--text3);flex-shrink:0}
+.f-size{font-size:.65rem;color:var(--text3);flex-shrink:0}
 .f-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:.9rem;
   flex-shrink:0;line-height:1;padding:0 2px;transition:color .12s}
 .f-del:hover{color:var(--red)}
 
 /* ── File type badge ── */
-.type-badge{display:inline-flex;align-items:center;justify-content:center;font-size:.64rem;
-  font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:3px;flex-shrink:0;
+.type-badge{display:inline-flex;align-items:center;justify-content:center;font-size:.58rem;
+  font-weight:700;letter-spacing:.06em;padding:2px 5px;border-radius:3px;flex-shrink:0;
   font-family:var(--font)}
 
 /* ── Type filter chips ── */
-.type-filter-wrap{display:flex;flex-wrap:wrap;gap:6px}
-.tf-chip{display:flex;align-items:center;gap:5px;padding:5px 10px;font-size:.78rem;font-weight:600;
-  border-radius:20px;cursor:pointer;border:1.5px solid;transition:opacity .15s;user-select:none}
+.type-filter-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.tf-chip{display:flex;align-items:center;gap:4px;padding:4px 8px;font-size:.68rem;font-weight:600;
+  border-radius:20px;cursor:pointer;border:1px solid;transition:opacity .15s;user-select:none}
 .tf-chip.off{opacity:.35}
 
 /* ── Upload summary ── */
@@ -143,155 +120,160 @@
 .summ-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);
   padding:8px 10px;text-align:center}
 .summ-stat .sv{font-size:1.1rem;font-weight:700;color:var(--pri)}
-.summ-stat .sl{font-size:.7rem;color:var(--text3);margin-top:1px}
+.summ-stat .sl{font-size:.65rem;color:var(--text3);margin-top:1px}
 
 /* ── Section selector ── */
-.sheet-list{display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto}
-.sheet-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;
-  font-size:.84rem;cursor:pointer;user-select:none;color:var(--text2)}
+.sheet-list{display:flex;flex-direction:column;gap:3px;max-height:150px;overflow-y:auto}
+.sheet-item{display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:5px;
+  font-size:.74rem;cursor:pointer;user-select:none}
 .sheet-item:hover{background:var(--surface2)}
-.sheet-item input[type=checkbox]{accent-color:var(--pri);width:15px;height:15px;cursor:pointer;flex-shrink:0}
-.sheet-fn{color:var(--text3);font-size:.73rem;margin-left:auto}
+.sheet-item input[type=checkbox]{accent-color:var(--pri);width:13px;height:13px;cursor:pointer}
+.sheet-fn{color:var(--text3);font-size:.65rem;margin-left:auto}
 
 /* ── Query builder ── */
-#uts-qb-root-logic{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;
-  background:var(--pri-bg);border:1.5px solid var(--pri-br);border-radius:var(--r-sm)}
-.rl-label{font-size:.84rem;color:var(--pri);font-weight:700}
-.logic-btns{display:flex;border:1.5px solid var(--border2);border-radius:6px;overflow:hidden}
-.lbtn{padding:5px 13px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;
-  background:#fff;color:var(--text2);transition:all .12s;font-family:var(--font)}
+#qb-root-logic{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;
+  background:var(--pri-bg);border:1px solid var(--pri-br);border-radius:var(--r-sm)}
+.rl-label{font-size:.7rem;color:var(--pri);font-weight:600}
+.logic-btns{display:flex;border:1px solid var(--border2);border-radius:5px;overflow:hidden}
+.lbtn{padding:4px 12px;font-size:.72rem;font-weight:600;cursor:pointer;border:none;
+  background:transparent;color:var(--text2);transition:all .12s;font-family:var(--font)}
 .lbtn.active{background:var(--pri);color:#fff}
 
-.qb-groups{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;padding-right:2px}
-.qb-connector{text-align:center;font-size:.75rem;font-weight:800;color:var(--pri);
-  letter-spacing:.12em;padding:2px 0}
+.qb-groups{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:2px}
+.qb-connector{text-align:center;font-size:.65rem;font-weight:700;color:var(--pri);
+  letter-spacing:.1em;padding:2px 0}
 
-.group-card{background:#f8fbff;border:1.5px solid var(--border2);border-radius:var(--r-sm);overflow:hidden}
-.group-hdr{display:flex;align-items:center;gap:7px;padding:9px 12px;
-  background:#e4edf8;border-bottom:1.5px solid var(--border2)}
-.group-label{font-size:.78rem;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.07em}
-.group-logic-btns{display:flex;border:1.5px solid var(--border2);border-radius:5px;overflow:hidden}
-.glbtn{padding:4px 11px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;
-  background:#fff;color:var(--text2);transition:all .12s;font-family:var(--font)}
+.group-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);overflow:hidden}
+.group-hdr{display:flex;align-items:center;gap:6px;padding:7px 10px;
+  background:var(--surface2);border-bottom:1px solid var(--border)}
+.group-label{font-size:.67rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.group-logic-btns{display:flex;border:1px solid var(--border2);border-radius:4px;overflow:hidden}
+.glbtn{padding:3px 9px;font-size:.67rem;font-weight:600;cursor:pointer;border:none;
+  background:transparent;color:var(--text2);transition:all .12s;font-family:var(--font)}
 .glbtn.active{background:var(--pri);color:#fff}
 .group-del{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);
-  font-size:.9rem;padding:2px 5px;transition:color .12s;line-height:1}
+  font-size:.8rem;padding:2px 4px;transition:color .12s}
 .group-del:hover{color:var(--red)}
 
-.cond-list{padding:8px 10px;display:flex;flex-direction:column;gap:8px}
-.cond-row{display:flex;flex-direction:column;gap:6px;padding:10px 10px;
-  background:#fff;border:1.5px solid var(--border);border-radius:7px;
-  box-shadow:0 1px 3px rgba(15,23,42,.05)}
-.cond-row-top{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.cond-not{padding:5px 10px;font-size:.78rem;font-weight:700;cursor:pointer;border-radius:5px;
-  border:1.5px solid var(--border2);background:#fff;color:var(--text3);
-  transition:all .12s;font-family:var(--font);letter-spacing:.02em}
+.cond-list{padding:6px 8px;display:flex;flex-direction:column;gap:5px}
+.cond-row{display:flex;flex-direction:column;gap:4px;padding:6px 8px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:5px}
+.cond-row-top{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.cond-not{padding:3px 7px;font-size:.67rem;font-weight:700;cursor:pointer;border-radius:4px;
+  border:1px solid var(--border2);background:transparent;color:var(--text3);
+  transition:all .12s;font-family:var(--font);letter-spacing:.03em}
 .cond-not.on{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-
-/* Column and Operator selects — large, clearly readable */
-.cond-col,.cond-op{padding:7px 10px;font-size:.84rem;font-weight:500;
-  border:1.5px solid var(--border2);border-radius:6px;background:#fff;color:var(--text);
-  font-family:var(--font);cursor:pointer;transition:border-color .14s;
-  -webkit-appearance:none;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
-.cond-col{min-width:120px;flex:1}
-.cond-op{min-width:150px}
-.cond-col:focus,.cond-op:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(15,118,110,.12)}
-.cond-col:hover,.cond-op:hover{border-color:var(--pri-l)}
-
-.cond-row-bot{display:flex;gap:5px;align-items:center}
-
-/* Keyword input — prominent, can't miss */
-.cond-val,.cond-val2{flex:1;padding:8px 11px;font-size:.86rem;font-weight:400;
-  border:1.5px solid var(--border2);border-radius:6px;background:#fff;color:var(--text);
-  font-family:var(--font);transition:border-color .14s}
-.cond-val::placeholder,.cond-val2::placeholder{color:#a0aec0;font-style:italic}
-.cond-val:focus,.cond-val2:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(15,118,110,.12)}
-
-.cond-sep{font-size:.82rem;font-weight:600;color:var(--text3);flex-shrink:0}
-.cond-cs{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;color:var(--text3);cursor:pointer;white-space:nowrap}
-.cond-cs input{accent-color:var(--pri);cursor:pointer;width:14px;height:14px}
-.cond-del{background:none;border:none;cursor:pointer;color:#aab;padding:4px 6px;
-  border-radius:5px;transition:all .12s;flex-shrink:0}
+.cond-col,.cond-op{padding:5px 8px;font-size:.75rem;border:1px solid var(--border2);
+  border-radius:5px;background:var(--surface);color:var(--text);font-family:var(--font);
+  cursor:pointer;transition:border-color .14s;-webkit-appearance:none}
+.cond-col{min-width:110px;flex:1}
+.cond-op{min-width:130px}
+.cond-col:focus,.cond-op:focus{outline:none;border-color:var(--pri)}
+.cond-row-bot{display:flex;gap:4px;align-items:center}
+.cond-val,.cond-val2{flex:1;padding:5px 8px;font-size:.75rem;border:1px solid var(--border2);
+  border-radius:5px;background:var(--surface);color:var(--text);font-family:var(--font);
+  transition:border-color .14s}
+.cond-val:focus,.cond-val2:focus{outline:none;border-color:var(--pri)}
+.cond-sep{font-size:.7rem;color:var(--text3);flex-shrink:0}
+.cond-cs{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--text3);cursor:pointer}
+.cond-cs input{accent-color:var(--pri);cursor:pointer}
+.cond-del{background:none;border:none;cursor:pointer;color:var(--text3);padding:3px 5px;
+  border-radius:4px;transition:all .12s;flex-shrink:0}
 .cond-del:hover{background:var(--red-bg);color:var(--red)}
-.cond-no-val{font-size:.8rem;color:var(--text3);font-style:italic;padding:4px 2px}
+.cond-no-val{font-size:.72rem;color:var(--text3);font-style:italic;padding:3px 0}
 
-.btn-add-cond{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;
-  font-size:.82rem;font-weight:600;color:var(--pri);background:var(--pri-bg);
-  border:1.5px dashed var(--pri-br);border-radius:6px;cursor:pointer;
-  font-family:var(--font);transition:all .14s;margin-top:4px}
-.btn-add-cond:hover{background:#ccfbf1;border-color:var(--pri)}
-.btn-add-group{display:flex;align-items:center;gap:7px;padding:9px 14px;
-  font-size:.84rem;font-weight:600;color:var(--text2);background:#fff;
-  border:1.5px dashed var(--border2);border-radius:var(--r-sm);cursor:pointer;
-  font-family:var(--font);transition:all .14s;margin-top:8px;width:100%}
+.btn-add-cond{display:flex;align-items:center;gap:5px;width:100%;padding:5px 8px;
+  font-size:.72rem;color:var(--text3);background:transparent;border:1px dashed var(--border2);
+  border-radius:5px;cursor:pointer;font-family:var(--font);transition:all .14s;margin-top:4px}
+.btn-add-cond:hover{border-color:var(--pri);color:var(--pri)}
+.btn-add-group{display:flex;align-items:center;gap:6px;padding:7px 12px;
+  font-size:.75rem;color:var(--text2);background:transparent;border:1px dashed var(--border2);
+  border-radius:var(--r-sm);cursor:pointer;font-family:var(--font);transition:all .14s;margin-top:6px}
 .btn-add-group:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
 
 /* ── Options panel ── */
-.opt-row{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:.86rem;
-  color:var(--text);font-weight:500;border-bottom:1px solid var(--surface3)}
-.opt-row:last-child{border-bottom:none}
-.opt-row input[type=checkbox]{accent-color:var(--pri);cursor:pointer;width:16px;height:16px;flex-shrink:0}
-.opt-row input[type=number]{width:80px;padding:5px 9px;border:1.5px solid var(--border2);
-  border-radius:6px;font-size:.84rem;font-family:var(--font);color:var(--text);background:#fff}
+.opt-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.75rem;color:var(--text2)}
+.opt-row input[type=checkbox]{accent-color:var(--pri);cursor:pointer}
+.opt-row input[type=number]{width:70px;padding:4px 7px;border:1px solid var(--border2);
+  border-radius:5px;font-size:.75rem;font-family:var(--font)}
 .opt-label{flex:1}
 
 /* ── Search actions ── */
-#uts-search-actions{padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#fff;
-  border-top:2px solid var(--border)}
-.btn-search{width:100%;padding:12px;background:var(--pri);color:#fff;border:none;
-  border-radius:var(--r-sm);font-size:.95rem;font-weight:700;cursor:pointer;
-  font-family:var(--font);transition:all .14s;display:flex;align-items:center;justify-content:center;gap:8px;
-  letter-spacing:.01em}
+#search-actions{padding:12px 14px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.btn-search{width:100%;padding:10px;background:var(--pri);color:#fff;border:none;
+  border-radius:var(--r-sm);font-size:.88rem;font-weight:700;cursor:pointer;
+  font-family:var(--font);transition:all .14s;display:flex;align-items:center;justify-content:center;gap:7px}
 .btn-search:hover{background:var(--pri-l);transform:translateY(-1px);box-shadow:var(--sh-md)}
 .btn-search:active{transform:none}
 .btn-search:disabled{opacity:.4;pointer-events:none}
-.btn-row{display:flex;gap:7px}
-.btn-sec{flex:1;padding:9px;background:#fff;color:var(--text2);
-  border:1.5px solid var(--border2);border-radius:var(--r-sm);font-size:.82rem;font-weight:600;
+.btn-row{display:flex;gap:6px}
+.btn-sec{flex:1;padding:8px;background:var(--surface);color:var(--text2);
+  border:1px solid var(--border2);border-radius:var(--r-sm);font-size:.78rem;font-weight:600;
   cursor:pointer;font-family:var(--font);transition:all .14s;display:flex;
   align-items:center;justify-content:center;gap:5px}
 .btn-sec:hover{border-color:var(--border);color:var(--text);background:var(--surface2)}
 .btn-sec.danger:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .btn-sec:disabled{opacity:.35;pointer-events:none}
-#uts-btn-cancel{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
-#uts-btn-cancel:hover{background:var(--amber);color:#fff}
+#btn-cancel{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
+#btn-cancel:hover{background:var(--amber);color:#fff}
 
 /* ── Presets ── */
-.preset-grid{display:flex;flex-direction:column;gap:6px}
-.preset-btn{width:100%;text-align:left;padding:10px 13px;background:#fff;
-  border:1.5px solid var(--border);border-radius:var(--r-sm);cursor:pointer;
-  font-size:.84rem;color:var(--text2);font-family:var(--font);transition:all .13s}
+.preset-grid{display:flex;flex-direction:column;gap:5px}
+.preset-btn{width:100%;text-align:left;padding:7px 10px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;
+  font-size:.73rem;color:var(--text2);font-family:var(--font);transition:all .13s}
 .preset-btn:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
-.preset-btn .pt{font-weight:700;display:block;color:var(--text);font-size:.86rem}
-.preset-btn .pd{color:var(--text3);font-size:.76rem;margin-top:2px}
+.preset-btn .pt{font-weight:600;display:block;color:var(--text)}
+.preset-btn .pd{color:var(--text3);font-size:.68rem;margin-top:1px}
 
-/* ── Progress bar ── */
-#uts-progress-wrap{padding:0 16px 10px;display:none;background:#fff}
-.prog-info{display:flex;justify-content:space-between;font-size:.78rem;font-weight:500;color:var(--text2);margin-bottom:5px}
-.prog-track{height:5px;background:var(--surface3);border-radius:99px;overflow:hidden}
+/* ── Progress bar (search) ── */
+#progress-wrap{padding:0 14px 8px;display:none;background:var(--surface)}
+.prog-info{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text2);margin-bottom:4px}
+.prog-track{height:4px;background:var(--surface3);border-radius:99px;overflow:hidden}
 .prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--pri),var(--pri-l));
   border-radius:99px;transition:width .2s ease}
 
+/* ── Upload progress bar (file parsing) ── */
+#upload-prog-wrap{display:none;padding:10px 14px 10px;background:var(--pri-bg);
+  border-top:2px solid var(--pri-br);flex-shrink:0}
+.uprog-hdr{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.uprog-spinner{width:14px;height:14px;border:2.5px solid var(--pri-br);
+  border-top-color:var(--pri);border-radius:50%;animation:upspin .65s linear infinite;flex-shrink:0}
+@keyframes upspin{to{transform:rotate(360deg)}}
+.uprog-title{font-size:.72rem;font-weight:700;color:var(--pri);flex:1}
+.uprog-counter{font-size:.7rem;font-weight:700;color:var(--pri);flex-shrink:0;
+  background:var(--pri);color:#fff;padding:1px 6px;border-radius:10px}
+.uprog-file{font-size:.68rem;color:var(--text2);margin-bottom:5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.uprog-track{height:5px;background:var(--pri-br);border-radius:99px;overflow:hidden}
+.uprog-fill{height:100%;width:0%;background:var(--pri);
+  border-radius:99px;transition:width .25s ease}
+.uprog-hint{font-size:.63rem;color:var(--text3);margin-top:4px}
+
+/* ── File chip overflow (many files) ── */
+.flist-more-btn{width:100%;padding:5px 8px;font-size:.7rem;color:var(--text3);
+  background:transparent;border:1px dashed var(--border2);border-radius:6px;
+  cursor:pointer;font-family:var(--font);transition:all .14s;margin-top:4px}
+.flist-more-btn:hover{border-color:var(--pri);color:var(--pri)}
+
 /* ── Main area top bar ── */
-#uts-main-topbar{padding:14px 20px 10px;flex-shrink:0}
-.topbar-title{font-size:.88rem;font-weight:700;color:var(--text)}
-.topbar-sub{font-size:.78rem;color:var(--text3);margin-top:2px}
+#main-topbar{padding:14px 20px 10px;flex-shrink:0}
+.topbar-title{font-size:.8rem;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:.72rem;color:var(--text3);margin-top:1px}
 
 /* ── Upload summary (main) ── */
-#uts-upload-summary{padding:0 20px 14px;display:none;flex-shrink:0}
+#upload-summary{padding:0 20px 14px;display:none;flex-shrink:0}
 .summ-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   padding:14px 16px;box-shadow:var(--sh)}
-.summ-card-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:10px;
+.summ-card-title{font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:10px;
   display:flex;align-items:center;gap:6px}
 .summ-stats{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .stat-pill{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
-  padding:6px 12px;font-size:.76rem;color:var(--text2)}
+  padding:6px 12px;font-size:.72rem;color:var(--text2)}
 .stat-pill strong{color:var(--text);font-weight:700}
-.file-summary-table{width:100%;border-collapse:collapse;font-size:.76rem}
-.file-summary-table th{text-align:left;color:var(--text3);font-weight:600;padding:4px 8px;
-  border-bottom:1px solid var(--border);text-transform:uppercase;font-size:.66rem;letter-spacing:.04em}
+.file-summary-table{width:100%;border-collapse:collapse;font-size:.72rem}
+.file-summary-table th{text-align:left;color:var(--text3);font-weight:600;padding:3px 8px;
+  border-bottom:1px solid var(--border);text-transform:uppercase;font-size:.63rem;letter-spacing:.04em}
 .file-summary-table td{padding:4px 8px;color:var(--text2);border-bottom:1px solid var(--border)}
 .file-summary-table tr:last-child td{border-bottom:none}
 .file-summary-table td:first-child{color:var(--text);font-family:var(--mono)}
@@ -299,35 +281,27 @@
 .fst-err{color:var(--red)!important}
 .fst-warn{color:var(--amber)!important}
 
-/* ── Upload progress bar ── */
-.upload-prog-wrap{margin-top:2px}
-.upload-prog-info{display:flex;justify-content:space-between;font-size:.77rem;font-weight:500;color:var(--text2);margin-bottom:6px}
-.upload-prog-track{height:6px;background:var(--surface3);border-radius:99px;overflow:hidden}
-.upload-prog-fill{height:100%;background:linear-gradient(90deg,var(--pri),var(--pri-l));
-  border-radius:99px;transition:width .25s ease}
-.upload-actions{margin-top:8px}
-
 /* ── Error/warning panel ── */
-#uts-err-panel{margin:0 20px 14px;flex-shrink:0;display:none}
+#err-panel{margin:0 20px 14px;flex-shrink:0;display:none}
 .err-card{background:var(--red-bg);border:1px solid var(--red-br);border-radius:var(--r);
   padding:12px 16px}
-.err-card-title{font-size:.8rem;font-weight:700;color:var(--red);margin-bottom:8px;
+.err-card-title{font-size:.75rem;font-weight:700;color:var(--red);margin-bottom:8px;
   display:flex;align-items:center;gap:6px}
 .err-item{display:flex;align-items:flex-start;gap:8px;padding:5px 0;
-  border-bottom:1px solid var(--red-br);font-size:.77rem}
+  border-bottom:1px solid var(--red-br);font-size:.71rem}
 .err-item:last-child{border-bottom:none;padding-bottom:0}
 .err-name{font-family:var(--mono);color:var(--text);font-weight:600;flex-shrink:0;
   max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .err-reason{color:var(--text2);flex:1}
 
 /* ── Results toolbar ── */
-#uts-results-toolbar{padding:0 20px 10px;display:none;flex-shrink:0}
+#results-toolbar{padding:0 20px 10px;display:none;flex-shrink:0}
 .rtb{display:flex;align-items:center;gap:8px;background:var(--surface);
   border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px}
-.rtb-count{font-size:.84rem;font-weight:700;color:var(--text)}
-.rtb-sub{font-size:.76rem;color:var(--text3);flex:1}
+.rtb-count{font-size:.8rem;font-weight:700;color:var(--text)}
+.rtb-sub{font-size:.72rem;color:var(--text3);flex:1}
 .rtb-btns{display:flex;gap:5px}
-.rtb-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;font-size:.78rem;font-weight:600;
+.rtb-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;font-size:.73rem;font-weight:600;
   border-radius:5px;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);
   color:var(--text2);font-family:var(--font);transition:all .13s}
 .rtb-btn:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-bg)}
@@ -336,15 +310,15 @@
 .rtb-btn:disabled{opacity:.35;pointer-events:none}
 
 /* ── Results area ── */
-#uts-results-container{flex:1;padding:0 20px 24px;overflow-y:visible}
+#results-container{flex:1;padding:0 20px 24px;overflow-y:visible}
 
 /* ── Empty / no-results states ── */
 .state-card{display:flex;flex-direction:column;align-items:center;padding:56px 24px;
   color:var(--text3);gap:12px;text-align:center}
 .state-card svg{opacity:.35}
 .state-card h3{font-size:.95rem;font-weight:600;color:var(--text2)}
-.state-card p{font-size:.82rem;line-height:1.65;max-width:320px}
-.state-card .hint{font-size:.76rem;color:var(--text3);font-style:italic}
+.state-card p{font-size:.8rem;line-height:1.65;max-width:320px}
+.state-card .hint{font-size:.72rem;color:var(--text3);font-style:italic}
 
 /* ── Result groups ── */
 .result-group{margin-bottom:10px;border-radius:var(--r);overflow:hidden;
@@ -354,30 +328,30 @@
 .rg-hdr:hover{background:var(--surface3)}
 .rg-toggle{color:var(--text3);font-size:.65rem;transition:transform .2s;flex-shrink:0}
 .rg-hdr.open .rg-toggle{transform:rotate(90deg)}
-.rg-file{font-size:.8rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
-.rg-sheet{font-size:.74rem;color:var(--text2);background:var(--surface);
+.rg-file{font-size:.78rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.rg-sheet{font-size:.72rem;color:var(--text2);background:var(--surface);
   border:1px solid var(--border2);border-radius:4px;padding:2px 7px;font-family:var(--mono)}
-.rg-count{margin-left:auto;font-size:.7rem;font-weight:700;background:var(--pri-bg);
-  color:var(--pri);border:1px solid var(--pri-br);border-radius:20px;padding:2px 9px}
+.rg-count{margin-left:auto;font-size:.68rem;font-weight:700;background:var(--pri-bg);
+  color:var(--pri);border:1px solid var(--pri-br);border-radius:20px;padding:2px 8px}
 .rg-body{display:none;background:var(--surface)}
 .rg-hdr.open + .rg-body{display:block}
 .rg-tbl-wrap{overflow-x:auto}
-.rg-tbl{width:max-content;min-width:100%;border-collapse:collapse;font-size:.77rem;font-family:var(--mono)}
-.rg-tbl th{padding:7px 12px;text-align:left;font-size:.67rem;font-weight:700;text-transform:uppercase;
+.rg-tbl{width:max-content;min-width:100%;border-collapse:collapse;font-size:.75rem;font-family:var(--mono)}
+.rg-tbl th{padding:7px 12px;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;
   letter-spacing:.05em;color:var(--text3);border-bottom:2px solid var(--border2);
   background:var(--surface2);white-space:nowrap;position:sticky;top:0;z-index:1}
 .rg-tbl th.row-num-h{color:var(--text3);width:52px}
 .rg-tbl td{padding:6px 12px;border-bottom:1px solid var(--border);white-space:nowrap;
   color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-.rg-tbl td.row-num{color:var(--text3);font-size:.7rem;user-select:none}
+.rg-tbl td.row-num{color:var(--text3);font-size:.68rem;user-select:none}
 .rg-tbl tbody tr:hover td{background:var(--surface2)}
 .rg-tbl tbody tr:last-child td{border-bottom:none}
 .cell-match{background:rgba(245,158,11,.18);color:#92400e;border-radius:3px;
   padding:1px 3px;font-weight:600}
 .rg-footer{display:flex;align-items:center;justify-content:space-between;
   padding:8px 14px;background:var(--surface2);border-top:1px solid var(--border)}
-.rg-shown{font-size:.74rem;color:var(--text3)}
-.btn-load-more{padding:4px 12px;font-size:.74rem;font-weight:600;cursor:pointer;
+.rg-shown{font-size:.7rem;color:var(--text3)}
+.btn-load-more{padding:4px 12px;font-size:.7rem;font-weight:600;cursor:pointer;
   border:1px solid var(--border2);border-radius:5px;background:var(--surface);
   color:var(--text2);font-family:var(--font);transition:all .13s}
 .btn-load-more:hover{border-color:var(--pri);color:var(--pri)}
@@ -388,53 +362,48 @@
   padding:10px 12px;transition:border-color .13s}
 .snip-card:hover{border-color:var(--border2)}
 .snip-meta{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-.snip-section-lbl{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;
+.snip-section-lbl{font-size:.63rem;font-weight:700;color:var(--text3);text-transform:uppercase;
   letter-spacing:.06em;background:var(--surface3);border:1px solid var(--border);
   border-radius:3px;padding:2px 5px}
-.snip-line-num{font-size:.65rem;color:var(--text3);font-family:var(--mono)}
-.snip-text{font-size:.8rem;color:var(--text);line-height:1.65;font-family:var(--mono);
+.snip-line-num{font-size:.63rem;color:var(--text3);font-family:var(--mono)}
+.snip-text{font-size:.78rem;color:var(--text);line-height:1.65;font-family:var(--mono);
   word-break:break-word;white-space:pre-wrap}
 .snip-hl{background:rgba(245,158,11,.25);color:#92400e;border-radius:2px;
   padding:1px 2px;font-weight:600}
 
-/* ── Toast (anchored to the tool's own box, not the browser viewport —
-   so it never overlaps the blog's header/nav when embedded in a post) ── */
-#uts-toast{position:absolute;bottom:16px;left:50%;transform:translateX(-50%) translateY(60px);
-  background:#1e293b;color:#f1f5f9;padding:8px 18px;border-radius:8px;font-size:.8rem;
+/* ── Toast (contained within widget) ── */
+#uts-app{position:relative}
+#toast{position:absolute;bottom:16px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:#1e293b;color:#f1f5f9;padding:8px 18px;border-radius:8px;font-size:.78rem;
   box-shadow:var(--sh-lg);transition:transform .26s ease;z-index:9999;white-space:nowrap;
-  pointer-events:none;font-family:var(--font);max-width:90%;overflow:hidden;text-overflow:ellipsis}
-#uts-toast.show{transform:translateX(-50%) translateY(0)}
-#uts-toast.warn{background:#78350f;color:#fef3c7}
-#uts-toast.ok{background:#064e3b;color:#d1fae5}
+  pointer-events:none;font-family:var(--font)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.warn{background:#78350f;color:#fef3c7}
+#toast.ok{background:#064e3b;color:#d1fae5}
 
-/* ── Scrollbar (scoped — won't restyle scrollbars elsewhere on the blog) ── */
-#uts-root ::-webkit-scrollbar{width:5px;height:5px}
-#uts-root ::-webkit-scrollbar-track{background:transparent}
-#uts-root ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
-/* ── Responsive — blog content columns are usually 600–900px, not just
-   phone widths, so the sidebar stacks above the results well before the
-   classic 768px mobile breakpoint. ── */
-@media(max-width:900px){
-  #uts-body{flex-direction:column}
-  #uts-sidebar{width:100%;border-right:none;border-bottom:2px solid var(--border);max-height:45vh}
-  #uts-app{height:min(var(--embed-height),900px)}
-}
-@media(max-width:480px){
-  #uts-app{--hdr:auto}
-  #uts-hdr{flex-wrap:wrap;height:auto;padding:10px 14px;gap:8px}
-  .hdr-sub{display:none}
+/* ── Responsive ── */
+@media(max-width:768px){
+  #body{flex-direction:column}
+  #sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:50vh}
+  .summ-grid{grid-template-columns:repeat(4,1fr)}
 }
 
 /* ── Animations ── */
 @keyframes fadeSlide{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .result-group{animation:fadeSlide .2s ease}
 </style>
-<div id="uts-root">
+</head>
+<body>
+<!-- Universal Text Search Widget — Blogger-safe embed -->
 <div id="uts-app">
 
 <!-- ══ HEADER ══ -->
-<header id="uts-hdr">
+<header id="hdr">
   <div class="hdr-brand">
     <div class="hdr-logo">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -459,17 +428,17 @@
 </header>
 
 <!-- ══ BODY ══ -->
-<div id="uts-body">
+<div id="body">
 
 <!-- ══ SIDEBAR ══ -->
-<aside id="uts-sidebar">
+<aside id="sidebar">
 
   <!-- Upload -->
   <div class="panel">
     <div class="panel-hdr open" onclick="UI.togglePanel(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span class="panel-title">Upload Files</span>
-      <span class="panel-badge" id="uts-pb-files">0 files</span>
+      <span class="panel-badge" id="pb-files">0 files</span>
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
@@ -477,43 +446,53 @@
         <button class="mtab active" onclick="FM.switchMode('multi',this)">📄 Files</button>
         <button class="mtab" onclick="FM.switchMode('dir',this)">📁 Folder</button>
       </div>
-      <div class="dropzone" id="uts-dropzone"
+      <div class="dropzone" id="dropzone"
            ondragover="FM.onDragOver(event)" ondragleave="FM.onDragLeave()"
            ondrop="FM.onDrop(event)">
-        <input type="file" id="uts-fi-multi"
+        <input type="file" id="fi-multi"
           accept=".xlsx,.xls,.csv,.txt,.lst,.log,.json,.xml,.md,.html,.htm,.pdf,.docx,.pptx,.doc,.ppt,.rtf,.odt"
           multiple onchange="FM.onSelect()">
-        <input type="file" id="uts-fi-dir" webkitdirectory style="display:none" onchange="FM.onSelect()">
+        <input type="file" id="fi-dir" webkitdirectory style="display:none" onchange="FM.onSelect()">
         <div class="dz-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
         <p><strong>Click to browse</strong> or drag &amp; drop</p>
         <p class="dz-hint">Excel · PDF · Word · PowerPoint · Text — all local</p>
       </div>
-      <div class="upload-actions" id="uts-upload-actions" style="display:none">
-        <button class="btn-sec danger" style="width:100%" onclick="FM.clearAllFiles()">Clear All Files</button>
-      </div>
+      <div class="file-list" id="file-list"></div>
     </div>
   </div>
 
+  <!-- Upload Progress (shown while files are parsing) -->
+  <div id="upload-prog-wrap">
+    <div class="uprog-hdr">
+      <div class="uprog-spinner"></div>
+      <span class="uprog-title">Parsing files…</span>
+      <span class="uprog-counter" id="uprog-counter">0/0</span>
+    </div>
+    <div class="uprog-file" id="uprog-file">Preparing…</div>
+    <div class="uprog-track"><div class="uprog-fill" id="uprog-fill"></div></div>
+    <div class="uprog-hint">Please wait — UI may be briefly unresponsive during parsing</div>
+  </div>
+
   <!-- Type Filter -->
-  <div class="panel" id="uts-panel-type-filter" style="display:none">
+  <div class="panel" id="panel-type-filter" style="display:none">
     <div class="panel-hdr open" onclick="UI.togglePanel(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
       <span class="panel-title">Filter by Type</span>
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
-      <div class="type-filter-wrap" id="uts-type-filter-wrap"></div>
+      <div class="type-filter-wrap" id="type-filter-wrap"></div>
     </div>
   </div>
 
   <!-- Section Filter -->
-  <div class="panel" id="uts-panel-sheets" style="display:none">
-    <div class="panel-hdr" onclick="UI.togglePanel(this)">
+  <div class="panel" id="panel-sheets" style="display:none">
+    <div class="panel-hdr open" onclick="UI.togglePanel(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span class="panel-title">Section Filter</span>
-      <span class="panel-badge" id="uts-pb-sheets">0 sections</span>
+      <span class="panel-badge" id="pb-sheets">0 sections</span>
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
@@ -521,7 +500,7 @@
         <button class="btn-sec" style="flex:1;padding:4px" onclick="FM.checkAllSheets(true)">All</button>
         <button class="btn-sec" style="flex:1;padding:4px" onclick="FM.checkAllSheets(false)">None</button>
       </div>
-      <div class="sheet-list" id="uts-sheet-list"></div>
+      <div class="sheet-list" id="sheet-list"></div>
     </div>
   </div>
 
@@ -533,14 +512,14 @@
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
-      <div id="uts-qb-root-logic">
+      <div id="qb-root-logic">
         <span class="rl-label">Groups match:</span>
         <div class="logic-btns">
-          <button class="lbtn active" id="uts-rl-and" onclick="QB.setRootLogic('AND')">ALL (AND)</button>
-          <button class="lbtn" id="uts-rl-or"  onclick="QB.setRootLogic('OR')">ANY (OR)</button>
+          <button class="lbtn active" id="rl-and" onclick="QB.setRootLogic('AND')">ALL (AND)</button>
+          <button class="lbtn" id="rl-or"  onclick="QB.setRootLogic('OR')">ANY (OR)</button>
         </div>
       </div>
-      <div class="qb-groups" id="uts-qb-groups"></div>
+      <div class="qb-groups" id="qb-groups"></div>
       <button class="btn-add-group" onclick="QB.addGroup()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Group
@@ -550,54 +529,58 @@
 
   <!-- Options -->
   <div class="panel">
-    <div class="panel-hdr open" onclick="UI.togglePanel(this)">
+    <div class="panel-hdr" onclick="UI.togglePanel(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
       <span class="panel-title">Options</span>
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
       <label class="opt-row">
-        <input type="checkbox" id="uts-opt-first-row-header" onchange="FM.reparse()">
+        <input type="checkbox" id="opt-first-row-header" checked onchange="FM.reparse()">
         <span class="opt-label">First row is header (Excel/CSV)</span>
       </label>
       <label class="opt-row">
-        <input type="checkbox" id="uts-opt-trim-cells" checked>
+        <input type="checkbox" id="opt-trim-cells" checked>
         <span class="opt-label">Trim whitespace</span>
       </label>
+      <div class="opt-row">
+        <span class="opt-label">Max matches</span>
+        <input type="number" id="opt-max-results" value="5000" min="100" max="50000" step="500">
+      </div>
     </div>
   </div>
 
   <!-- Search Actions -->
-  <div id="uts-search-actions">
-    <button class="btn-search" id="uts-btn-search" onclick="SR.start()">
+  <div id="search-actions">
+    <button class="btn-search" id="btn-search" onclick="SR.start()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Search
     </button>
     <div class="btn-row">
-      <button class="btn-sec danger" id="uts-btn-cancel" onclick="SR.cancel()" style="display:none">
+      <button class="btn-sec danger" id="btn-cancel" onclick="SR.cancel()" style="display:none">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         Cancel
       </button>
-      <button class="btn-sec" id="uts-btn-clear-results" onclick="RR.clear()" disabled>Clear Results</button>
+      <button class="btn-sec" id="btn-clear-results" onclick="RR.clear()" disabled>Clear Results</button>
     </div>
   </div>
-  <div id="uts-progress-wrap">
+  <div id="progress-wrap">
     <div class="prog-info">
-      <span id="uts-prog-label">Processing…</span>
-      <span id="uts-prog-pct">0%</span>
+      <span id="prog-label">Processing…</span>
+      <span id="prog-pct">0%</span>
     </div>
-    <div class="prog-track"><div class="prog-fill" id="uts-prog-fill"></div></div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
   </div>
 
   <!-- Presets -->
   <div class="panel">
-    <div class="panel-hdr open" onclick="UI.togglePanel(this)">
+    <div class="panel-hdr" onclick="UI.togglePanel(this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       <span class="panel-title">Quick Presets</span>
       <span class="panel-arrow">▼</span>
     </div>
     <div class="panel-body">
-      <div class="preset-grid" id="uts-preset-grid"></div>
+      <div class="preset-grid" id="preset-grid"></div>
     </div>
   </div>
 
@@ -605,18 +588,18 @@
 <!-- /SIDEBAR -->
 
 <!-- ══ MAIN ══ -->
-<main id="uts-main">
-  <div id="uts-main-topbar">
-    <div class="topbar-title" id="uts-main-title">Ready to Search</div>
-    <div class="topbar-sub" id="uts-main-sub">Upload documents, build your query, then click Search</div>
+<main id="main">
+  <div id="main-topbar">
+    <div class="topbar-title" id="main-title">Ready to Search</div>
+    <div class="topbar-sub" id="main-sub">Upload documents, build your query, then click Search</div>
   </div>
 
-  <div id="uts-upload-summary"></div>
-  <div id="uts-err-panel"></div>
-  <div id="uts-results-toolbar"></div>
+  <div id="upload-summary"></div>
+  <div id="err-panel"></div>
+  <div id="results-toolbar"></div>
 
-  <div id="uts-results-container">
-    <div class="state-card" id="uts-empty-state">
+  <div id="results-container">
+    <div class="state-card" id="empty-state">
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/>
@@ -631,9 +614,10 @@
 </main>
 
 </div><!-- /body -->
-</div><!-- /app -->
 
-<div id="uts-toast"></div>
+<div id="toast"></div>
+
+</div><!-- /uts-app -->
 
 <script>
 'use strict';
@@ -710,17 +694,9 @@ const UI = {
     }
   },
 
-  collapseAllPanels() {
-    $$('.panel-hdr.open').forEach(hdr => {
-      hdr.classList.remove('open');
-      const body = hdr.nextElementSibling;
-      if (body && body.classList.contains('panel-body')) body.style.display = 'none';
-    });
-  },
-
   _toastT: null,
   toast(msg, type='', dur=2600) {
-    const el = $('uts-toast');
+    const el = $('toast');
     el.textContent = msg;
     el.className = type ? `show ${type}` : 'show';
     clearTimeout(this._toastT);
@@ -728,20 +704,32 @@ const UI = {
   },
 
   setProgress(pct, label) {
-    $('uts-prog-fill').style.width = pct + '%';
-    $('uts-prog-pct').textContent = Math.round(pct) + '%';
-    $('uts-prog-label').textContent = label;
+    $('prog-fill').style.width = pct + '%';
+    $('prog-pct').textContent = Math.round(pct) + '%';
+    $('prog-label').textContent = label;
   },
 
   showProgress(visible) {
-    $('uts-progress-wrap').style.display = visible ? 'block' : 'none';
+    $('progress-wrap').style.display = visible ? 'block' : 'none';
     if (!visible) this.setProgress(0, '');
+  },
+
+  /* ── Upload progress (file parsing phase) ── */
+  showUploadProgress(visible) {
+    $('upload-prog-wrap').style.display = visible ? 'block' : 'none';
+  },
+
+  setUploadProgress(done, total, filename) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    $('uprog-fill').style.width = pct + '%';
+    $('uprog-counter').textContent = `${done}/${total}`;
+    $('uprog-file').textContent = filename ? `▶ ${filename}` : 'Preparing…';
   },
 
   setSearching(v) {
     S.searching = v;
-    $('uts-btn-search').disabled = v;
-    $('uts-btn-cancel').style.display = v ? 'flex' : 'none';
+    $('btn-search').disabled = v;
+    $('btn-cancel').style.display = v ? 'flex' : 'none';
     this.showProgress(v);
   },
 };
@@ -772,108 +760,95 @@ const PARSERS = {
     });
   },
 
-  // ══════════════════════════════════════════════════════════
-  // SCAN variants — cheap, called at UPLOAD TIME.
-  // Return [{name, headers, enabled}] with NO rows stored,
-  // keeping RAM near-zero between upload and search time.
-  // ══════════════════════════════════════════════════════════
-
-  // Excel: sheetRows:2 so SheetJS only parses the header row + 1 data row.
-  async excelScan(file, opts) {
-    const ab = await PARSERS._ab(file);
-    const wb = XLSX.read(new Uint8Array(ab), {
-      type:'array', sheetRows: opts.useHeader ? 2 : 1, cellDates:false, cellNF:false
-    });
-    return wb.SheetNames.map(name => {
-      const ws = wb.Sheets[name];
-      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:'', blankrows:false});
-      const firstRow = aoa[0] || [];
-      const headers = opts.useHeader
-        ? firstRow.map((h, i) => { const s = opts.trimCells ? String(h??'').trim() : String(h??''); return s || `Col ${FM._colLbl(i)}`; })
-        : firstRow.map((_, i) => `Col ${FM._colLbl(i)}`);
-      return { name, headers: headers.length ? headers : ['Col A'], enabled: true };
-    });
-  },
-
-  // PDF: just count pages — no text extraction yet.
-  async pdfScan(file) {
-    if (!window.pdfjsLib) throw new Error('PDF.js unavailable');
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc)
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const ab = await PARSERS._ab(file);
-    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
-    return Array.from({ length: pdf.numPages }, (_, i) => ({ name: `Page ${i+1}`, headers: ['Text'], enabled: true }));
-  },
-
-  // DOCX: single stub — content extracted at search time.
-  async docxScan() {
-    return [{ name: 'Document', headers: ['Text'], enabled: true }];
-  },
-
-  // PPTX: count slides cheaply by listing ZIP entries.
-  async pptxScan(file) {
-    if (!window.JSZip) throw new Error('JSZip unavailable');
-    const ab = await PARSERS._ab(file);
-    const zip = await JSZip.loadAsync(ab);
-    const count = Object.keys(zip.files).filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f)).length;
-    return Array.from({ length: Math.max(1, count) }, (_, i) => ({ name: `Slide ${i+1}`, headers: ['Text'], enabled: true }));
-  },
-
-  // Text: single stub — no reading needed at upload time.
-  async textScan() {
-    return [{ name: 'Content', headers: ['Text'], enabled: true }];
-  },
-
-  // ══════════════════════════════════════════════════════════
-  // FULL parsers — called at SEARCH TIME only, one file at a
-  // time. Rows are discarded after each file is searched so
-  // RAM stays bounded to one file at a time.
-  // ══════════════════════════════════════════════════════════
-
+  // ── Plain text files (.txt .lst .log .json .xml .md .html .htm)
   async plainText(file, opts) {
     const text = await PARSERS._text(file);
     const lines = text.split(/\r?\n/);
     const rows = lines.map(l => [opts.trimCells ? l.trim() : l]);
-    return [{ name:'Content', headers:['Text'], rows }];
+    return [{ name:'Content', headers:['Text'], rows, enabled:true }];
   },
 
+  // ── Excel / CSV — uses sheet_to_json with dense mode (much faster than cell-by-cell)
   async excel(file, opts) {
     const ab = await PARSERS._ab(file);
-    const wb = XLSX.read(new Uint8Array(ab), {type:'array', cellDates:true, cellNF:false});
+    // dense:true stores cells as arrays internally — avoids encode/decode_cell overhead
+    const wb = XLSX.read(new Uint8Array(ab), {type:'array', cellDates:true, dense:true});
     return wb.SheetNames.map(name => {
       const ws = wb.Sheets[name];
-      const { headers, rows } = FM._wsToData(ws, opts.useHeader, opts.trimCells);
-      return { name, headers, rows };
+      // sheet_to_json with header:1 returns array-of-arrays natively
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+      if (!aoa.length) return {name, headers:[], rows:[], enabled:true};
+      const colCount = aoa.reduce((m, r) => Math.max(m, r.length), 0);
+      let headers, dataRows;
+      if (opts.useHeader) {
+        headers = Array.from({length: colCount}, (_, i) => {
+          const h = aoa[0][i];
+          const s = h !== null && h !== undefined ? String(h) : '';
+          return (opts.trimCells ? s.trim() : s) || `Col ${FM._colLbl(i)}`;
+        });
+        dataRows = aoa.slice(1);
+      } else {
+        headers = Array.from({length: colCount}, (_, i) => `Col ${FM._colLbl(i)}`);
+        dataRows = aoa;
+      }
+      const rows = dataRows.map(r => {
+        const row = new Array(colCount);
+        for (let c = 0; c < colCount; c++) {
+          let v = r[c] !== undefined ? r[c] : '';
+          if (v instanceof Date) v = v.toISOString().slice(0, 10);
+          if (opts.trimCells && typeof v === 'string') v = v.trim();
+          row[c] = v;
+        }
+        return row;
+      });
+      return {name, headers, rows, enabled:true};
     });
   },
 
+  // ── PDF — pages fetched in parallel via Promise.all
   async pdf(file, opts) {
     if (!window.pdfjsLib) throw new Error('PDF.js library unavailable. Check your internet connection and reload.');
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc)
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab = await PARSERS._ab(file);
-    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
-    const sheets = [];
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const content = await page.getTextContent();
-      const lineMap = {};
-      for (const item of content.items) {
-        if (!item.str) continue;
-        const y = Math.round(item.transform[5]);
-        if (!lineMap[y]) lineMap[y] = [];
-        lineMap[y].push(item.str);
-      }
-      const lines = Object.keys(lineMap).sort((a,b)=>Number(b)-Number(a))
-        .map(y => lineMap[y].join('').trim()).filter(l => l.length > 0);
-      if (lines.length > 0)
-        sheets.push({ name:`Page ${pageNum}`, headers:['Text'], rows:lines.map(l=>[opts.trimCells?l.trim():l]) });
-    }
-    if (!sheets.length)
-      sheets.push({ name:'Page 1', headers:['Text'], rows:[['[No extractable text — scanned/image-only PDF]']] });
+    const pdf = await pdfjsLib.getDocument({data: new Uint8Array(ab)}).promise;
+
+    // Fetch all pages in parallel — PDF.js handles concurrency internally
+    const pageResults = await Promise.all(
+      Array.from({length: pdf.numPages}, async (_, i) => {
+        const pageNum = i + 1;
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent();
+        const lineMap = {};
+        for (const item of content.items) {
+          if (!item.str) continue;
+          const y = Math.round(item.transform[5]);
+          (lineMap[y] || (lineMap[y] = [])).push(item.str);
+        }
+        const lines = Object.keys(lineMap)
+          .sort((a, b) => Number(b) - Number(a))
+          .map(y => lineMap[y].join('').trim())
+          .filter(l => l.length > 0);
+        return {pageNum, lines};
+      })
+    );
+
+    const sheets = pageResults
+      .filter(p => p.lines.length > 0)
+      .map(({pageNum, lines}) => ({
+        name: `Page ${pageNum}`, headers: ['Text'],
+        rows: lines.map(l => [opts.trimCells ? l.trim() : l]),
+        enabled: true
+      }));
+
+    if (!sheets.length) sheets.push({
+      name:'Page 1', headers:['Text'],
+      rows:[['[No extractable text — this may be a scanned/image-only PDF]']], enabled:true
+    });
     return sheets;
   },
 
+  // ── DOCX (uses JSZip)
   async docx(file, opts) {
     if (!window.JSZip) throw new Error('JSZip library unavailable. Check your internet connection and reload.');
     const ab = await PARSERS._ab(file);
@@ -886,29 +861,44 @@ const PARSERS = {
       [...p.querySelectorAll('t')].map(t => t.textContent).join('')
     ).filter(t => (opts.trimCells ? t.trim() : t).length > 0);
     if (!paras.length) throw new Error('No readable text found in document');
-    return [{ name:'Document', headers:['Text'], rows:paras.map(p=>[opts.trimCells?p.trim():p]) }];
+    const rows = paras.map(p => [opts.trimCells ? p.trim() : p]);
+    return [{name:'Document', headers:['Text'], rows, enabled:true}];
   },
 
+  // ── PPTX — all slides decompressed in parallel via Promise.all
   async pptx(file, opts) {
     if (!window.JSZip) throw new Error('JSZip library unavailable. Check your internet connection and reload.');
     const ab = await PARSERS._ab(file);
     const zip = await JSZip.loadAsync(ab);
     const slideKeys = Object.keys(zip.files)
       .filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f))
-      .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+      .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
     if (!slideKeys.length) throw new Error('No slides found in PPTX file');
-    const sheets = [];
-    for (let i = 0; i < slideKeys.length; i++) {
-      const xmlStr = await zip.file(slideKeys[i]).async('string');
-      const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
-      const paras = [...doc.querySelectorAll('p')].map(p =>
-        [...p.querySelectorAll('t')].map(t => t.textContent).join('')
-      ).filter(t => (opts.trimCells ? t.trim() : t).length > 0);
-      if (paras.length > 0)
-        sheets.push({ name:`Slide ${i+1}`, headers:['Text'], rows:paras.map(p=>[opts.trimCells?p.trim():p]) });
-    }
-    if (!sheets.length)
-      sheets.push({ name:'Slide 1', headers:['Text'], rows:[['[No text content found in slides]']] });
+
+    // Decompress all slides concurrently
+    const slideResults = await Promise.all(
+      slideKeys.map(async (key, i) => {
+        const xmlStr = await zip.file(key).async('string');
+        const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+        const paras = [...doc.querySelectorAll('p')].map(p =>
+          [...p.querySelectorAll('t')].map(t => t.textContent).join('')
+        ).filter(t => (opts.trimCells ? t.trim() : t).length > 0);
+        return {slideNum: i + 1, paras};
+      })
+    );
+
+    const sheets = slideResults
+      .filter(s => s.paras.length > 0)
+      .map(({slideNum, paras}) => ({
+        name: `Slide ${slideNum}`, headers: ['Text'],
+        rows: paras.map(p => [opts.trimCells ? p.trim() : p]),
+        enabled: true
+      }));
+
+    if (!sheets.length) sheets.push({
+      name:'Slide 1', headers:['Text'],
+      rows:[['[No text content found in slides]']], enabled:true
+    });
     return sheets;
   },
 };
@@ -921,22 +911,28 @@ const FM = {
     S.mode = mode;
     $$('.mtab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-    $('uts-fi-multi').style.display = mode === 'multi' ? 'block' : 'none';
-    $('uts-fi-dir').style.display   = mode === 'dir'   ? 'block' : 'none';
-    if (mode === 'multi') $('uts-fi-dir').value = '';
-    else $('uts-fi-multi').value = '';
+    $('fi-multi').style.display = mode === 'multi' ? 'block' : 'none';
+    $('fi-dir').style.display   = mode === 'dir'   ? 'block' : 'none';
+    if (mode === 'multi') $('fi-dir').value = '';
+    else $('fi-multi').value = '';
   },
 
-  onDragOver(e) { e.preventDefault(); $('uts-dropzone').classList.add('over'); },
-  onDragLeave()  { $('uts-dropzone').classList.remove('over'); },
+  onDragOver(e) { e.preventDefault(); $('dropzone').classList.add('over'); },
+  onDragLeave()  { $('dropzone').classList.remove('over'); },
   onDrop(e) {
-    e.preventDefault(); $('uts-dropzone').classList.remove('over');
+    e.preventDefault(); $('dropzone').classList.remove('over');
     if (e.dataTransfer?.files?.length) this.addFiles(e.dataTransfer.files);
   },
   onSelect() {
-    const inp = S.mode === 'multi' ? $('uts-fi-multi') : $('uts-fi-dir');
+    const inp = S.mode === 'multi' ? $('fi-multi') : $('fi-dir');
     if (inp.files?.length) this.addFiles(inp.files);
   },
+
+  /* ── Sequential parse queue — keeps UI responsive between files ── */
+  _parseQueue: [],
+  _parseBusy: false,
+  _parseTotalQueued: 0,
+  _parseDoneCount: 0,
 
   addFiles(rawList) {
     const all = Array.from(rawList);
@@ -949,7 +945,6 @@ const FM = {
       else unknown.push(f);
     });
 
-    // Track unsupported files in error panel
     legacy.forEach(f => {
       if (!S.errors.some(e => e.name === f.name)) {
         S.errors.push({ name:f.name, reason:'Legacy binary format (.doc/.ppt/.rtf/.odt) cannot be parsed in the browser. Convert to .docx / .pptx / .pdf first.' });
@@ -971,92 +966,189 @@ const FM = {
     }
 
     if (legacy.length || unknown.length) {
-      UI.toast(`${legacy.length + unknown.length} unsupported file(s) skipped — see error panel`, 'warn', 4000);
+      UI.toast(`${legacy.length + unknown.length} unsupported file(s) skipped`, 'warn', 4000);
     }
 
-    supported.forEach(f => this._addFile(f));
+    // Add new files to state (as loading) then enqueue for sequential parsing
+    const newEntries = [];
+    supported.forEach(f => {
+      if (S.files.some(x => x.name === f.name && x.size === f.size)) return;
+      const id = uid();
+      const fileType = getFileType(f.name);
+      const entry = { id, name:f.name, size:f.size, fileType, sheets:[], error:null, parseWarning:null, loading:true, _file:f };
+      S.files.push(entry);
+      newEntries.push(entry);
+    });
+
+    if (!newEntries.length) { this._renderErrorPanel(); return; }
+
+    // Update queue totals
+    this._parseTotalQueued += newEntries.length;
+    this._parseQueue.push(...newEntries);
+
+    // Show upload progress panel
+    UI.showUploadProgress(true);
+    UI.setUploadProgress(this._parseDoneCount, this._parseTotalQueued, newEntries[0].name);
+    this._renderFileList();
     this._renderErrorPanel();
+
+    // Kick off queue processing (no-op if already running)
+    if (!this._parseBusy) this._processQueue();
   },
 
-  _addFile(file) {
-    // Skip duplicates
-    if (S.files.some(f => f.name === file.name && f.size === file.size)) return;
-    const id = uid();
-    const fileType = getFileType(file.name);
-    const entry = { id, name:file.name, size:file.size, fileType, sections:[], error:null, loading:true, _file:file };
-    S.files.push(entry);
-    this._renderFileList();
-    this._parseFile(entry);
+  async _processQueue() {
+    if (this._parseBusy) return;
+    this._parseBusy = true;
+
+    while (this._parseQueue.length > 0) {
+      const entry = this._parseQueue.shift();
+
+      // Skip if this file was removed from S.files while queued
+      if (!S.files.includes(entry)) {
+        this._parseDoneCount++;
+        continue;
+      }
+
+      // Update progress display
+      UI.setUploadProgress(this._parseDoneCount, this._parseTotalQueued, entry.name);
+
+      // Yield to browser so UI can repaint
+      await new Promise(r => setTimeout(r, 0));
+
+      // Parse the file
+      await this._parseFileAsync(entry);
+
+      this._parseDoneCount++;
+
+      // Partial UI update after each file (cheap re-render)
+      this._renderFileList();
+      this._updateColumnUnion();
+
+      // Yield again before next file
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    // All done — full UI refresh
+    this._parseBusy = false;
+    UI.showUploadProgress(false);
+    this._renderSheetList();
+    this._renderTypeFilter();
+    this._renderUploadSummary();
+    QB.refreshColumns();
+
+    const ok   = S.files.filter(f => !f.error).length;
+    const fail = S.files.filter(f =>  f.error).length;
+    UI.toast(`${ok} file(s) ready${fail ? ' · ' + fail + ' failed' : ''}`, fail ? 'warn' : 'ok');
+
+    // Reset counters for next batch
+    this._parseTotalQueued = 0;
+    this._parseDoneCount   = 0;
+  },
+
+  async _parseFileAsync(entry) {
+    const cfg = FILE_TYPE_CONFIG[entry.fileType];
+    if (!cfg || !cfg.parse) {
+      entry.loading = false;
+      entry.error = 'Format not supported for in-browser parsing';
+      return;
+    }
+    try {
+      const opts = {
+        useHeader: $('opt-first-row-header').checked,
+        trimCells: $('opt-trim-cells').checked,
+      };
+      const sheets = await PARSERS[cfg.parse](entry._file, opts);
+      entry.loading = false;
+      S.totalRows += sheets.reduce((a, s) => a + s.rows.length, 0);
+
+      // ── Stream rows to worker in chunks ──────────────────────────────────
+      // Chunking (30K rows/msg) prevents a single massive structured-clone
+      // spike that could crash the tab. GC can reclaim each chunk between sends.
+      const CHUNK = 30_000;
+      if (S.worker) {
+        for (const sheet of sheets) {
+          const {rows, name: sName, headers, enabled} = sheet;
+          const n = rows.length;
+          for (let ci = 0, start = 0; start < n || ci === 0; ci++, start = ci * CHUNK) {
+            S.worker.postMessage({
+              type: 'upsert_chunk',
+              payload: {
+                fileId: entry.id, fileName: entry.name, fileType: entry.fileType,
+                sheetName: sName, headers, enabled,
+                rows: n === 0 ? [] : rows.slice(start, start + CHUNK)
+              }
+            });
+            if (n === 0) break;
+          }
+        }
+        S.worker.postMessage({type: 'upsert_done', payload: {fileId: entry.id}});
+      }
+
+      // ── Drop rows from main thread — worker is now the single owner ──────
+      // Keeps only UI-needed metadata: no rows array = no duplicate memory.
+      entry.sheets = sheets.map(s => ({
+        name: s.name, headers: s.headers, rowCount: s.rows.length, enabled: s.enabled
+      }));
+      entry._file = null; // release File reference (allows browser to GC raw bytes)
+    } catch(err) {
+      entry.loading = false;
+      entry.error = err.message || 'Parse error';
+    }
   },
 
   _parseFile(entry) {
-    // Map file types to their cheap scan variant (headers + section names, NO rows)
-    const scanMap = { excel:'excelScan', pdf:'pdfScan', docx:'docxScan', pptx:'pptxScan', text:'textScan' };
-    const scanFn = scanMap[entry.fileType];
-    if (!scanFn) {
-      entry.loading = false;
-      entry.error = 'Format not supported for in-browser parsing';
-      if (!S.errors.some(e => e.name === entry.name))
-        S.errors.push({ name: entry.name, reason: entry.error });
+    // Legacy sync-style wrapper used by reparse()
+    const parseAsync = async () => {
+      await this._parseFileAsync(entry);
       this._afterParse();
-      return;
-    }
-
-    const scan = async () => {
-      try {
-        const opts = {
-          useHeader: $('uts-opt-first-row-header').checked,
-          trimCells: $('uts-opt-trim-cells').checked,
-        };
-        entry.sections = await PARSERS[scanFn](entry._file, opts);
-        entry.loading = false;
-      } catch(err) {
-        entry.loading = false;
-        entry.error = err.message || 'Scan error';
-        if (!S.errors.some(e => e.name === entry.name))
-          S.errors.push({ name: entry.name, reason: `Failed to read: ${entry.error}` });
-      }
-      FM._afterParse();
     };
-    scan();
+    parseAsync();
   },
 
   // Shared Excel worksheet → {headers, rows} converter (also used by PARSERS.excel)
-  // Uses SheetJS's native sheet_to_json(header:1) instead of manually walking
-  // every cell address with encode_cell() — meaningfully faster on large sheets.
   _wsToData(ws, useHeader, trimCells) {
-    const aoa = XLSX.utils.sheet_to_json(ws, { header:1, raw:true, defval:'', blankrows:true });
-    if (!aoa.length) return { headers:[], rows:[] };
+    let minC=Infinity, maxC=-1, minR=Infinity, maxR=-1;
+    Object.keys(ws).forEach(k => {
+      if (k[0]==='!') return;
+      try {
+        const {r,c} = XLSX.utils.decode_cell(k);
+        if (c<minC) minC=c; if (c>maxC) maxC=c;
+        if (r<minR) minR=r; if (r>maxR) maxR=r;
+      } catch(e){}
+    });
+    if (maxC<0) return {headers:[], rows:[]};
 
-    const colCount = aoa.reduce((m,r) => Math.max(m, r.length), 0);
-    const normCell = v => {
-      if (v instanceof Date) v = v.toISOString().slice(0,10);
-      if (trimCells && typeof v === 'string') v = v.trim();
-      return v;
-    };
-
-    let headers, dataRows;
-    if (useHeader) {
-      const headerRow = aoa[0] || [];
-      headers = [];
-      for (let c=0; c<colCount; c++) {
-        const raw = headerRow[c] !== undefined && headerRow[c] !== null ? String(headerRow[c]) : '';
-        const h = trimCells ? raw.trim() : raw;
-        headers.push(h || `Col ${FM._colLbl(c)}`);
+    const headerRowIdx = minR;
+    const headers = [];
+    for (let c=minC; c<=maxC; c++) {
+      if (useHeader) {
+        const cell = ws[XLSX.utils.encode_cell({r:headerRowIdx, c})];
+        const raw = cell?.v !== undefined ? String(cell.v) : '';
+        headers.push(trimCells ? raw.trim() : raw || `Col ${FM._colLbl(c-minC)}`);
+      } else {
+        headers.push(`Col ${FM._colLbl(c-minC)}`);
       }
-      dataRows = aoa.slice(1);
-    } else {
-      headers = [];
-      for (let c=0; c<colCount; c++) headers.push(`Col ${FM._colLbl(c)}`);
-      dataRows = aoa;
     }
 
-    const rows = dataRows.map(r => {
-      const row = new Array(colCount);
-      for (let c=0; c<colCount; c++) row[c] = normCell(r[c] !== undefined ? r[c] : '');
-      return row;
-    });
-
+    const dataStart = useHeader ? headerRowIdx+1 : headerRowIdx;
+    const rows = [];
+    for (let r=dataStart; r<=maxR; r++) {
+      const row = [];
+      for (let c=minC; c<=maxC; c++) {
+        const cell = ws[XLSX.utils.encode_cell({r, c})];
+        let v = '';
+        if (cell) {
+          if (cell.t === 'd' && cell.v instanceof Date) {
+            v = cell.v.toISOString().slice(0,10);
+          } else {
+            v = cell.v !== undefined ? cell.v : '';
+          }
+        }
+        if (trimCells && typeof v === 'string') v = v.trim();
+        row.push(v);
+      }
+      rows.push(row);
+    }
     return { headers, rows };
   },
 
@@ -1066,74 +1158,120 @@ const FM = {
   },
 
   _afterParse() {
-    const allDone = S.files.every(f => !f.loading);
+    // Lightweight refresh used by removeFile; full refresh is done by _processQueue
     this._renderFileList();
     this._updateColumnUnion();
     this._renderSheetList();
     this._renderTypeFilter();
     this._renderUploadSummary();
-    this._renderErrorPanel();
     QB.refreshColumns();
-    if (allDone) {
-      const ok = S.files.filter(f=>!f.error).length;
-      const fail = S.files.filter(f=> f.error).length;
-      UI.toast(`${ok} file(s) ready to search${fail?' · '+fail+' failed':''}`, fail?'warn':'ok');
-    }
   },
 
   reparse() {
-    S.files.forEach(f => { f.loading = true; f.sections = []; this._parseFile(f); });
+    S.totalRows = 0;
+    // Flush stale data from worker store (including any in-progress upserts)
+    if (S.worker) S.files.forEach(f => S.worker.postMessage({type:'remove', payload:{fileId: f.id}}));
+    // Reset queue state
+    this._parseQueue = [];
+    this._parseBusy = false;
+    this._parseTotalQueued = S.files.length;
+    this._parseDoneCount = 0;
+    S.files.forEach(f => {
+      f.loading = true; f.sheets = []; f.error = null;
+      // Note: reparse requires _file — it is only nulled after first parse,
+      // so if _file is already null (user removed the reference), skip gracefully.
+    });
+    this._parseQueue.push(...S.files.filter(f => f._file !== null));
+    UI.showUploadProgress(true);
+    UI.setUploadProgress(0, this._parseQueue.length, this._parseQueue[0]?.name || '');
+    this._parseTotalQueued = this._parseQueue.length;
     this._renderFileList();
+    this._processQueue();
   },
 
   removeFile(id) {
     const idx = S.files.findIndex(f => f.id === id);
     if (idx < 0) return;
+    const f = S.files[idx];
+    S.totalRows -= f.sheets.reduce((a,s) => a+(s.rowCount??s.rows?.length??0), 0);
     S.files.splice(idx, 1);
+    // Remove from worker store
+    if (S.worker) S.worker.postMessage({type:'remove', payload:{fileId: id}});
     this._afterParse();
     if (!S.files.length) {
-      $('uts-panel-sheets').style.display = 'none';
-      $('uts-panel-type-filter').style.display = 'none';
+      $('panel-sheets').style.display = 'none';
+      $('panel-type-filter').style.display = 'none';
     }
   },
 
-  clearAllFiles() {
-    if (!S.files.length) return;
-    S.files = [];
-    S.errors = [];
-    this._afterParse();
-    this._renderErrorPanel();
-    $('uts-panel-sheets').style.display = 'none';
-    $('uts-panel-type-filter').style.display = 'none';
-    RR.clear();
-    UI.toast('All files cleared');
+  _renderFileList() {
+    const el = $('file-list');
+    const pb = $('pb-files');
+    const MAX_VISIBLE = 40;
+    if (!S.files.length) { el.innerHTML = ''; pb.textContent = '0 files'; return; }
+    pb.textContent = `${S.files.length} file${S.files.length !== 1 ? 's' : ''}`;
+
+    const visible = S.files.slice(0, MAX_VISIBLE);
+    const overflow = S.files.length - MAX_VISIBLE;
+
+    el.innerHTML = visible.map(f => {
+      const badge = typeBadgeHTML(f.fileType);
+      return `
+      <div class="f-chip">
+        <span class="f-dot ${f.loading ? 'loading' : f.error ? 'err' : 'ok'}"></span>
+        ${badge}
+        <span class="f-name" title="${esc(f.name)}">${esc(f.name)}</span>
+        <span class="f-size">${fmtSize(f.size)}</span>
+        <button class="f-del" title="Remove" onclick="FM.removeFile('${f.id}')">×</button>
+      </div>`;
+    }).join('') +
+    (overflow > 0 ? `<button class="flist-more-btn" onclick="FM._showAllFiles(this)">▼ +${overflow} more files (click to expand)</button>` : '');
   },
 
-  _renderFileList() {
-    const pb = $('uts-pb-files');
-    pb.textContent = `${S.files.length} file${S.files.length!==1?'s':''}`;
-    $('uts-upload-actions').style.display = S.files.length ? 'block' : 'none';
+  _showAllFiles(btn) {
+    const el = $('file-list');
+    el.innerHTML = S.files.map(f => {
+      const badge = typeBadgeHTML(f.fileType);
+      return `
+      <div class="f-chip">
+        <span class="f-dot ${f.loading ? 'loading' : f.error ? 'err' : 'ok'}"></span>
+        ${badge}
+        <span class="f-name" title="${esc(f.name)}">${esc(f.name)}</span>
+        <span class="f-size">${fmtSize(f.size)}</span>
+        <button class="f-del" title="Remove" onclick="FM.removeFile('${f.id}')">×</button>
+      </div>`;
+    }).join('');
   },
 
   _renderSheetList() {
-    const panel = $('uts-panel-sheets');
-    const pb    = $('uts-pb-sheets');
-    const list  = $('uts-sheet-list');
-    const allSections = S.files.flatMap(f => (f.sections||[]).map(s => ({fid:f.id, fname:f.name, s})));
+    const panel = $('panel-sheets');
+    const pb    = $('pb-sheets');
+    const list  = $('sheet-list');
+    const allSections = S.files.flatMap(f => f.sheets.map(s => ({fid:f.id, fname:f.name, s})));
     if (!allSections.length) { panel.style.display='none'; return; }
     panel.style.display = '';
     pb.textContent = `${allSections.length} section${allSections.length!==1?'s':''}`;
-    list.innerHTML = allSections.map(({fid,fname,s}) => `
+
+    const MAX_SECTIONS = 120;
+    const visible = allSections.slice(0, MAX_SECTIONS);
+    const overflow = allSections.length - MAX_SECTIONS;
+
+    const renderItem = ({fid, fname, s}) => `
       <label class="sheet-item">
         <input type="checkbox" ${s.enabled?'checked':''} onchange="FM.toggleSheet('${fid}','${esc(s.name)}',this.checked)">
         <span>${esc(s.name)}</span>
         <span class="sheet-fn">${esc(fname.length>20?fname.slice(0,18)+'…':fname)}</span>
-      </label>`).join('');
+      </label>`;
+
+    list.innerHTML = visible.map(renderItem).join('') +
+      (overflow > 0
+        ? `<div style="padding:4px 6px;font-size:.67rem;color:var(--text3)">…and ${overflow} more sections (all included in search)</div>`
+        : '');
   },
 
   _renderTypeFilter() {
-    const panel = $('uts-panel-type-filter');
-    const wrap  = $('uts-type-filter-wrap');
+    const panel = $('panel-type-filter');
+    const wrap  = $('type-filter-wrap');
     const presentTypes = [...new Set(S.files.map(f => f.fileType))];
     if (!presentTypes.length) { panel.style.display='none'; return; }
     panel.style.display = '';
@@ -1160,23 +1298,30 @@ const FM = {
 
   toggleSheet(fid, sname, val) {
     const f = S.files.find(f => f.id === fid);
-    const s = f?.sections?.find(s => s.name === sname);
-    if (s) s.enabled = val;
+    const s = f?.sheets.find(s => s.name === sname);
+    if (s) {
+      s.enabled = val;
+      // Sync to worker so search respects enabled state correctly
+      if (S.worker) S.worker.postMessage({type:'toggle_sheet', payload:{fileId:fid, sheetName:sname, enabled:val}});
+    }
   },
 
   checkAllSheets(val) {
-    S.files.forEach(f => (f.sections||[]).forEach(s => s.enabled = val));
+    S.files.forEach(f => f.sheets.forEach(s => {
+      s.enabled = val;
+      if (S.worker) S.worker.postMessage({type:'toggle_sheet', payload:{fileId:f.id, sheetName:s.name, enabled:val}});
+    }));
     this._renderSheetList();
   },
 
   _updateColumnUnion() {
     const seen = new Set();
-    S.files.forEach(f => (f.sections||[]).forEach(s => (s.headers||[]).forEach(h => { if(h) seen.add(h); })));
+    S.files.forEach(f => f.sheets.forEach(s => s.headers.forEach(h => { if(h) seen.add(h); })));
     S.allCols = [...seen].sort((a,b) => a.localeCompare(b));
   },
 
   _renderErrorPanel() {
-    const el = $('uts-err-panel');
+    const el = $('err-panel');
     if (!S.errors.length) { el.style.display='none'; el.innerHTML=''; return; }
     el.style.display = 'block';
     el.innerHTML = `
@@ -1194,23 +1339,13 @@ const FM = {
   },
 
   _renderUploadSummary() {
-    const el = $('uts-upload-summary');
+    const el = $('upload-summary');
     if (!S.files.length) { el.style.display='none'; el.innerHTML=''; return; }
     el.style.display = 'block';
-
-    const total    = S.files.length;
-    const done     = S.files.filter(f => !f.loading);
-    const doneCount= done.length;
-    const errCount = done.filter(f => f.error).length;
-    const okCount  = doneCount - errCount;
-    const pct      = total ? (doneCount / total) * 100 : 0;
-    const allDone  = doneCount === total;
-    const totalSections = done.filter(f=>!f.error).reduce((a,f)=>a+(f.sections||[]).length,0);
-    const totalSize     = S.files.reduce((a,f)=>a+f.size,0);
-
-    const statusLabel = allDone
-      ? `✓ ${okCount} of ${total} file${total!==1?'s':''} ready to search${errCount?` · ${errCount} failed`:''}`
-      : `Scanning ${doneCount} of ${total} file${total!==1?'s':''}…`;
+    const loaded = S.files.filter(f=>!f.loading&&!f.error);
+    const totalSections = loaded.reduce((a,f)=>a+f.sheets.length,0);
+    const totalRows = loaded.reduce((a,f)=>a+f.sheets.reduce((b,s)=>b+(s.rowCount??s.rows?.length??0),0),0);
+    const totalSize = S.files.reduce((a,f)=>a+f.size,0);
 
     el.innerHTML = `
       <div class="summ-card">
@@ -1219,21 +1354,34 @@ const FM = {
           Upload Summary
         </div>
         <div class="summ-stats">
-          <div class="stat-pill"><strong>${total}</strong> file${total!==1?'s':''}</div>
+          <div class="stat-pill"><strong>${S.files.length}</strong> file${S.files.length!==1?'s':''}</div>
           <div class="stat-pill"><strong>${totalSections}</strong> section${totalSections!==1?'s':''}</div>
+          <div class="stat-pill"><strong>${fmtNum(totalRows)}</strong> entries</div>
           <div class="stat-pill"><strong>${fmtSize(totalSize)}</strong> total</div>
-          ${errCount ? `<div class="stat-pill fst-err"><strong>${errCount}</strong> failed</div>` : ''}
         </div>
-        <div class="upload-prog-wrap">
-          <div class="upload-prog-info">
-            <span class="${allDone && !errCount ? 'fst-ok' : ''}">${statusLabel}</span>
-            <span>${Math.round(pct)}%</span>
-          </div>
-          <div class="upload-prog-track"><div class="upload-prog-fill" style="width:${pct}%"></div></div>
-        </div>
-        <div style="margin-top:8px;padding:7px 10px;background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:5px;font-size:.76rem;color:var(--blue)">
-          ⚡ Rows are parsed on-demand at search time — one file at a time — to keep memory usage low.
-        </div>
+        <table class="file-summary-table">
+          <thead><tr>
+            <th>File</th><th>Type</th><th>Sections</th><th>Entries</th><th>Status</th>
+          </tr></thead>
+          <tbody>
+            ${S.files.map(f => {
+              const rows = f.sheets.reduce((a,s)=>a+(s.rowCount??s.rows?.length??0),0);
+              const status = f.loading ? '⏳ Loading…' : f.error ? `❌ ${esc(f.error)}` : '✓ Ready';
+              const cls = f.loading ? '' : f.error ? 'fst-err' : 'fst-ok';
+              const cfg = FILE_TYPE_CONFIG[f.fileType] || FILE_TYPE_CONFIG.unknown;
+              return `<tr>
+                <td title="${esc(f.name)}">${esc(f.name.length>22?f.name.slice(0,20)+'…':f.name)}</td>
+                <td><span class="type-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}</span></td>
+                <td>${f.sheets.length}</td>
+                <td>${fmtNum(rows)}</td>
+                <td class="${cls}">${status}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        ${totalRows > 100000 ? `<div style="margin-top:8px;padding:7px 10px;background:var(--amber-bg);border:1px solid var(--amber-br);border-radius:5px;font-size:.72rem;color:var(--amber)">
+          ⚠ Large dataset (${fmtNum(totalRows)} entries). Search may take several seconds.
+        </div>` : ''}
       </div>`;
   },
 };
@@ -1288,8 +1436,8 @@ const QB = {
 
   setRootLogic(v) {
     S.query.rootLogic = v;
-    $('uts-rl-and').classList.toggle('active', v==='AND');
-    $('uts-rl-or').classList.toggle('active', v==='OR');
+    $('rl-and').classList.toggle('active', v==='AND');
+    $('rl-or').classList.toggle('active', v==='OR');
     $$('.qb-connector').forEach(el => el.textContent = v);
   },
 
@@ -1475,7 +1623,7 @@ const QB = {
     const savedStart = focused?.selectionStart;
     const savedEnd   = focused?.selectionEnd;
 
-    const el = $('uts-qb-groups');
+    const el = $('qb-groups');
     el.innerHTML = S.query.groups.map((g,i) => this._groupHTML(g,i)).join('');
 
     S.query.groups.forEach(g => {
@@ -1538,14 +1686,14 @@ const QB = {
     }));
     S.query.rootLogic = q.rootLogic;
     S.query.groups = q.groups;
-    $('uts-rl-and').classList.toggle('active', q.rootLogic==='AND');
-    $('uts-rl-or').classList.toggle('active', q.rootLogic==='OR');
+    $('rl-and').classList.toggle('active', q.rootLogic==='AND');
+    $('rl-or').classList.toggle('active', q.rootLogic==='OR');
     this._renderGroups();
     UI.toast(`Preset loaded: ${preset.name}`);
   },
 
   _renderPresets() {
-    const el = $('uts-preset-grid');
+    const el = $('preset-grid');
     el.innerHTML = this._PRESETS.map((p,i) => `
       <button class="preset-btn" onclick="QB.applyPreset(${i})">
         <span class="pt">${esc(p.name)}</span>
@@ -1555,426 +1703,353 @@ const QB = {
 };
 
 /* ══════════════════════════════════════════════════════════════
-   INLINE WEB WORKER (UNCHANGED — handles both structured and text data)
+   INLINE WEB WORKER — persistent store, pre-lowercased cache,
+   pre-compiled conditions, adaptive progress throttle
 ═══════════════════════════════════════════════════════════════ */
 const WORKER_SRC = `
 'use strict';
+
+// ── Persistent in-worker data store ─────────────────────────────────────────
+const _store   = new Map(); // fileId → {name, fileType, sheets:[{name,headers,rows,lcRows,enabled}]}
+const _pending = new Map(); // fileId → {name, fileType, sheetsMap: Map<sheetName,{…}>}
 let _cancelled = false;
 
-function lev(s,t){
-  const m=s.length,n=t.length;
-  if(!m)return n;if(!n)return m;
-  const d=[];
-  for(let i=0;i<=m;i++){d[i]=[i];}
-  for(let j=0;j<=n;j++){d[0][j]=j;}
-  for(let j=1;j<=n;j++)for(let i=1;i<=m;i++)
-    d[i][j]=s[i-1]===t[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
+// ── RegExp cache — avoid recompiling on every cell ──────────────────────────
+const _reCache = new Map();
+function _re(p, flags) {
+  const k = flags + '/' + p;
+  if (!_reCache.has(k)) {
+    try { _reCache.set(k, new RegExp(p, flags)); }
+    catch(e) { _reCache.set(k, null); }
+  }
+  return _reCache.get(k);
+}
+
+// ── Levenshtein distance (fuzzy match) ──────────────────────────────────────
+function lev(s, t) {
+  const m = s.length, n = t.length;
+  if (!m) return n; if (!n) return m;
+  const d = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let j = 1; j <= n; j++)
+    for (let i = 1; i <= m; i++)
+      d[i][j] = s[i-1]===t[j-1] ? d[i-1][j-1] : 1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
   return d[m][n];
 }
 
-function fuzzy(cell,term,threshold){
-  return cell.split(/\\s+/).some(w=>lev(w,term)<=threshold);
+// ── Pre-compute lowercase array for a parsed sheet's rows ───────────────────
+// Called once per file upsert; eliminates val.toLowerCase() in the hot loop.
+function makeLcRows(rows) {
+  const out = new Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i], lc = new Array(row.length);
+    for (let j = 0; j < row.length; j++) {
+      const v = row[j];
+      lc[j] = (v !== null && v !== undefined) ? String(v).toLowerCase() : '';
+    }
+    out[i] = lc;
+  }
+  return out;
 }
 
-// Precompute everything that does NOT change per row (regex objects,
-// lowercased terms, parsed numeric/date bounds) — this runs once per
-// search instead of once per row, which is the dominant cost for
-// regex/fuzzy/date/numeric conditions on large datasets.
-function compileCondition(cond){
-  const cs = cond.caseSensitive;
-  const c = Object.assign({}, cond);
-  c.lcValue  = cs ? (cond.value||'')  : (cond.value||'').toLowerCase();
-  c.lcValue2 = cs ? (cond.value2||'') : (cond.value2||'').toLowerCase();
-  if (cond.operator === 'regex') {
-    try { c.compiledRegex = new RegExp(cond.value, cs ? '' : 'i'); }
-    catch(e) { c.compiledRegex = null; }
-  } else if (cond.operator === 'fuzzy') {
-    c.fuzzyThreshold = Math.max(1, Math.floor((cond.value||'').length*.35));
-  } else if (cond.operator.indexOf('num_') === 0) {
-    c.numValue  = parseFloat(cond.value);
-    c.numValue2 = parseFloat(cond.value2);
-  } else if (cond.operator.indexOf('date_') === 0) {
-    c.dateValue  = new Date(cond.value);
-    c.dateValue2 = new Date(cond.value2);
-  }
-  return c;
-}
-function compileQuery(query){
+// ── Pre-prepare conditions for a search — computed once per search call ─────
+// Avoids repeated toLowerCase/parseFloat/new Date inside the hot loop.
+function prepCond(c) {
+  const cs = c.caseSensitive;
   return {
-    rootLogic: query.rootLogic,
-    groups: query.groups.map(g => ({ logic:g.logic, conditions:g.conditions.map(compileCondition) }))
+    ...c,
+    _sv : cs ? (c.value  || '') : (c.value  || '').toLowerCase(),
+    _sv2: cs ? (c.value2 || '') : (c.value2 || '').toLowerCase(),
+    _nv : parseFloat(c.value),
+    _nv2: parseFloat(c.value2),
+    _d1 : new Date(c.value),
+    _d2 : new Date(c.value2),
   };
 }
 
-function testRaw(raw,cond){
-  const val=raw!==null&&raw!==undefined?String(raw):'';
-  const cs=cond.caseSensitive;
-  const cv=cs?val:val.toLowerCase();
-  const sv=cond.lcValue;
-  switch(cond.operator){
-    case 'contains':     return cv.includes(sv);
-    case 'not_contains': return !cv.includes(sv);
-    case 'equals':       return cv===sv;
-    case 'not_equals':   return cv!==sv;
-    case 'starts_with':  return cv.startsWith(sv);
-    case 'ends_with':    return cv.endsWith(sv);
-    case 'is_empty':     return val.trim()==='';
-    case 'is_not_empty': return val.trim()!=='';
-    case 'fuzzy':        return fuzzy(cv,sv,cond.fuzzyThreshold);
-    case 'regex':        return cond.compiledRegex ? cond.compiledRegex.test(val) : false;
-    case 'num_eq':      {const n=parseFloat(val);return!isNaN(n)&&n===cond.numValue;}
-    case 'num_gt':      {const n=parseFloat(val);return!isNaN(n)&&n>cond.numValue;}
-    case 'num_gte':     {const n=parseFloat(val);return!isNaN(n)&&n>=cond.numValue;}
-    case 'num_lt':      {const n=parseFloat(val);return!isNaN(n)&&n<cond.numValue;}
-    case 'num_lte':     {const n=parseFloat(val);return!isNaN(n)&&n<=cond.numValue;}
-    case 'num_between': {const n=parseFloat(val);return!isNaN(n)&&!isNaN(cond.numValue)&&!isNaN(cond.numValue2)&&n>=cond.numValue&&n<=cond.numValue2;}
-    case 'date_before': {const d=new Date(val);return!isNaN(d)&&!isNaN(cond.dateValue)&&d<cond.dateValue;}
-    case 'date_after':  {const d=new Date(val);return!isNaN(d)&&!isNaN(cond.dateValue)&&d>cond.dateValue;}
-    case 'date_on':     {const d=new Date(val);return!isNaN(d)&&!isNaN(cond.dateValue)&&d.toDateString()===cond.dateValue.toDateString();}
-    case 'date_between':{const d=new Date(val);return!isNaN(d)&&!isNaN(cond.dateValue)&&!isNaN(cond.dateValue2)&&d>=cond.dateValue&&d<=cond.dateValue2;}
+// ── Core per-cell test ───────────────────────────────────────────────────────
+// val = String(cell)  lc = precomputed lowercase  c = prepCond output
+function testCell(val, lc, c) {
+  const cv = c.caseSensitive ? val : lc;
+  switch (c.operator) {
+    case 'contains':     return cv.indexOf(c._sv) !== -1;
+    case 'not_contains': return cv.indexOf(c._sv) === -1;
+    case 'equals':       return cv === c._sv;
+    case 'not_equals':   return cv !== c._sv;
+    case 'starts_with':  return cv.startsWith(c._sv);
+    case 'ends_with':    return cv.endsWith(c._sv);
+    case 'is_empty':     return val.trim() === '';
+    case 'is_not_empty': return val.trim() !== '';
+    case 'fuzzy': {
+      const thr = Math.max(1, Math.floor(c._sv.length * .35));
+      return cv.split(/\\s+/).some(w => lev(w, c._sv) <= thr);
+    }
+    case 'regex': { const re = _re(c.value, c.caseSensitive ? '' : 'i'); return re ? re.test(val) : false; }
+    case 'num_eq':      { const n = parseFloat(val); return !isNaN(n) && n === c._nv; }
+    case 'num_gt':      { const n = parseFloat(val); return !isNaN(n) && n >  c._nv; }
+    case 'num_gte':     { const n = parseFloat(val); return !isNaN(n) && n >= c._nv; }
+    case 'num_lt':      { const n = parseFloat(val); return !isNaN(n) && n <  c._nv; }
+    case 'num_lte':     { const n = parseFloat(val); return !isNaN(n) && n <= c._nv; }
+    case 'num_between': { const n = parseFloat(val); return !isNaN(n) && n >= c._nv && n <= c._nv2; }
+    case 'date_before': { const d = new Date(val); return !isNaN(d) && !isNaN(c._d1) && d < c._d1; }
+    case 'date_after':  { const d = new Date(val); return !isNaN(d) && !isNaN(c._d1) && d > c._d1; }
+    case 'date_on':     { const d = new Date(val); return !isNaN(d) && !isNaN(c._d1) && d.toDateString() === c._d1.toDateString(); }
+    case 'date_between':{ const d = new Date(val); return !isNaN(d) && !isNaN(c._d1) && !isNaN(c._d2) && d >= c._d1 && d <= c._d2; }
     default: return false;
   }
 }
 
-// Note: testRaw() never reads cond.negate — negation is applied by the
-// caller below — so evalCond no longer needs to allocate a throwaway
-// {...cond, negate:false} object or an index array on every row.
-function evalCond(rowData,headers,cond){
-  if (cond.column === '*') {
-    if (cond.negate) {
-      let anyPos = false;
-      for (let i=0; i<rowData.length; i++) { if (testRaw(rowData[i],cond)) { anyPos=true; break; } }
-      if (anyPos) return { matched:false, cols:[] };
-      const cols = []; for (let i=0; i<rowData.length; i++) cols.push(i);
-      return { matched:true, cols };
-    }
-    const matchedCols = [];
-    for (let i=0; i<rowData.length; i++) { if (testRaw(rowData[i],cond)) matchedCols.push(i); }
-    return { matched:matchedCols.length>0, cols:matchedCols };
+function evalCond(row, lcRow, headers, c) {
+  const star = c.column === '*';
+  const idxs = star
+    ? row.map((_, i) => i)
+    : (() => { const i = headers.indexOf(c.column); return i >= 0 ? [i] : []; })();
+
+  // "NOT ANY" on wildcard column: true if no cell passes positively
+  if (star && c.negate) {
+    const anyPos = idxs.some(i => {
+      const v = row[i]; const val = v !== null && v !== undefined ? String(v) : '';
+      return testCell(val, lcRow[i], c);
+    });
+    return {matched: !anyPos, cols: anyPos ? [] : idxs};
   }
-  const i = headers.indexOf(cond.column);
-  if (i<0) return { matched:false, cols:[] };
-  const raw = testRaw(rowData[i],cond);
-  const hit = cond.negate ? !raw : raw;
-  return { matched:hit, cols: hit?[i]:[] };
+
+  const matchedCols = [];
+  for (const i of idxs) {
+    const v = row[i]; const val = v !== null && v !== undefined ? String(v) : '';
+    const pass = testCell(val, lcRow[i], c);
+    if (c.negate ? !pass : pass) matchedCols.push(i);
+  }
+  return {matched: matchedCols.length > 0, cols: matchedCols};
 }
 
-function evalGroup(rowData,headers,group){
-  const res=group.conditions.map(c=>evalCond(rowData,headers,c));
-  const matched=group.logic==='AND'?res.every(r=>r.matched):res.some(r=>r.matched);
-  return{matched,cols:[...new Set(res.filter(r=>r.matched).flatMap(r=>r.cols))]};
+function evalGroup(row, lcRow, headers, group) {
+  const res = group.conditions.map(c => evalCond(row, lcRow, headers, c));
+  const matched = group.logic === 'AND' ? res.every(r => r.matched) : res.some(r => r.matched);
+  return {matched, cols: [...new Set(res.filter(r => r.matched).flatMap(r => r.cols))]};
 }
 
-function evalQuery(rowData,headers,compiledQuery){
-  const res=compiledQuery.groups.map(g=>evalGroup(rowData,headers,g));
-  const matched=compiledQuery.rootLogic==='AND'?res.every(r=>r.matched):res.some(r=>r.matched);
-  return{matched,cols:[...new Set(res.filter(r=>r.matched).flatMap(r=>r.cols))]};
+function evalQuery(row, lcRow, headers, groups, rootLogic) {
+  const res = groups.map(g => evalGroup(row, lcRow, headers, g));
+  const matched = rootLogic === 'AND' ? res.every(r => r.matched) : res.some(r => r.matched);
+  return {matched, cols: [...new Set(res.filter(r => r.matched).flatMap(r => r.cols))]};
 }
 
-self.onmessage=function(e){
-  const{type,payload}=e.data;
-  if(type==='cancel'){_cancelled=true;return;}
-  if(type!=='search')return;
-  _cancelled=false;
-  const{files,query,maxResults}=payload;
-  const compiledQuery = compileQuery(query);
-  let totalRows=0,matchCount=0,batch=[];
+// ── Message handler ──────────────────────────────────────────────────────────
+self.onmessage = function(e) {
+  const {type, payload} = e.data;
 
-  for(const file of files){
-    if(_cancelled)break;
-    for(const sheet of file.sheets){
-      if(_cancelled)break;
-      const{name,headers,rows}=sheet;
-      for(let i=0;i<rows.length;i++){
-        if(_cancelled)break;
-        totalRows++;
-        if(totalRows%2000===0)
-          self.postMessage({type:'progress',done:totalRows,match:matchCount,file:file.name,sheet:name});
-        const{matched,cols}=evalQuery(rows[i],headers,compiledQuery);
-        if(matched){
-          matchCount++;
-          batch.push({fileId:file.id,fileName:file.name,fileType:file.fileType,
-            sheetName:name,rowNum:i+1,rowData:rows[i],headers,matchedCols:cols});
-          if(batch.length>=80){self.postMessage({type:'results',batch:batch.slice()});batch=[];}
-          if(matchCount>=maxResults){
-            if(batch.length)self.postMessage({type:'results',batch});
-            self.postMessage({type:'done',matchCount,totalRows,truncated:true});
-            return;
+  // ── Chunked upsert: rows arrive in batches; accumulate until upsert_done ──
+  // Sending 30K rows per message instead of everything at once lets GC run
+  // between chunks and prevents memory spikes.
+  if (type === 'upsert_chunk') {
+    const {fileId, fileName, fileType, sheetName, headers, enabled, rows} = payload;
+    if (!_pending.has(fileId))
+      _pending.set(fileId, {name: fileName, fileType, sheetsMap: new Map()});
+    const fd = _pending.get(fileId);
+    if (!fd.sheetsMap.has(sheetName))
+      fd.sheetsMap.set(sheetName, {name: sheetName, headers, enabled, rows: []});
+    // Append chunk rows to accumulator
+    const sh = fd.sheetsMap.get(sheetName);
+    for (let i = 0; i < rows.length; i++) sh.rows.push(rows[i]);
+    return;
+  }
+
+  // ── Finalize: all chunks received — build lcRows and move to store ──────
+  if (type === 'upsert_done') {
+    const {fileId} = payload;
+    const pd = _pending.get(fileId);
+    if (!pd) return;
+    _pending.delete(fileId);
+    _store.set(fileId, {
+      name: pd.name, fileType: pd.fileType,
+      sheets: [...pd.sheetsMap.values()].map(sh => ({
+        name: sh.name, headers: sh.headers, enabled: sh.enabled,
+        rows: sh.rows,
+        lcRows: makeLcRows(sh.rows)  // computed once here; never again
+      }))
+    });
+    return;
+  }
+
+  // ── Remove file data (called on removeFile or reparse) ──────────────────
+  if (type === 'remove') {
+    _store.delete(payload.fileId);
+    _pending.delete(payload.fileId);  // cancel any in-progress upsert too
+    return;
+  }
+
+  // ── Sync sheet enabled state (from FM.toggleSheet / checkAllSheets) ──────
+  if (type === 'toggle_sheet') {
+    const {fileId, sheetName, enabled} = payload;
+    const fd = _store.get(fileId);
+    if (fd) { const sh = fd.sheets.find(s => s.name === sheetName); if (sh) sh.enabled = enabled; }
+    return;
+  }
+
+  // Cancel ongoing search
+  if (type === 'cancel') { _cancelled = true; return; }
+
+  // Search — only the tiny query is sent; rows never leave the worker
+  if (type === 'search') {
+    _cancelled = false;
+    const {fileIds, enabledSheets, query, maxResults} = payload;
+    // fileIds:      plain object  { id: true, … }
+    // enabledSheets plain object  { fileId: { sheetName: true, … } }
+
+    // Pre-prepare all conditions once for this search
+    const groups = query.groups.map(g => ({...g, conditions: g.conditions.map(prepCond)}));
+    const rootLogic = query.rootLogic;
+
+    let totalRows = 0, matchCount = 0, batch = [];
+    const BATCH = 500; // larger batches = fewer postMessage round-trips
+
+    for (const [fileId, fd] of _store) {
+      if (_cancelled) break;
+      if (!fileIds[fileId]) continue;
+      const enabledSet = enabledSheets[fileId];
+
+      for (const sheet of fd.sheets) {
+        if (_cancelled) break;
+        if (enabledSet && !enabledSet[sheet.name]) continue;
+
+        const {name, headers, rows, lcRows} = sheet;
+        const n = rows.length;
+        // Adaptive progress throttle: emit less often for huge sheets
+        const progEvery = n > 200000 ? 50000 : n > 50000 ? 10000 : 2000;
+
+        for (let i = 0; i < n; i++) {
+          if (_cancelled) break;
+          totalRows++;
+          if (totalRows % progEvery === 0)
+            self.postMessage({type:'progress', done:totalRows, match:matchCount, file:fd.name, sheet:name});
+
+          const {matched, cols} = evalQuery(rows[i], lcRows[i], headers, groups, rootLogic);
+          if (matched) {
+            matchCount++;
+            batch.push({fileId, fileName:fd.name, fileType:fd.fileType,
+              sheetName:name, rowNum:i+1, rowData:rows[i], headers, matchedCols:cols});
+            if (batch.length >= BATCH) { self.postMessage({type:'results', batch}); batch = []; }
+            if (matchCount >= maxResults) {
+              if (batch.length) self.postMessage({type:'results', batch});
+              self.postMessage({type:'done', matchCount, totalRows, truncated:true});
+              return;
+            }
           }
         }
+        self.postMessage({type:'sheet_done', file:fd.name, sheet:name, rows:n});
       }
-      self.postMessage({type:'sheet_done',file:file.name,sheet:name,rows:rows.length});
     }
+    if (batch.length) self.postMessage({type:'results', batch});
+    self.postMessage(_cancelled
+      ? {type:'cancelled', matchCount, totalRows}
+      : {type:'done', matchCount, totalRows, truncated:false});
   }
-  if(batch.length)self.postMessage({type:'results',batch});
-  if(_cancelled)self.postMessage({type:'cancelled',matchCount,totalRows});
-  else self.postMessage({type:'done',matchCount,totalRows,truncated:false});
 };
 `;
 
 /* ══════════════════════════════════════════════════════════════
-   SEARCH RUNNER
-═══════════════════════════════════════════════════════════════ */
-// Mirrors the matching logic inside WORKER_SRC, used only as a fallback
-// when this sandbox/browser blocks Worker creation from blob: URLs.
-const MatchEngine = {
-  lev(s,t){
-    const m=s.length,n=t.length;
-    if(!m)return n; if(!n)return m;
-    const d=[];
-    for(let i=0;i<=m;i++) d[i]=[i];
-    for(let j=0;j<=n;j++) d[0][j]=j;
-    for(let j=1;j<=n;j++) for(let i=1;i<=m;i++)
-      d[i][j]=s[i-1]===t[j-1]?d[i-1][j-1]:1+Math.min(d[i-1][j],d[i][j-1],d[i-1][j-1]);
-    return d[m][n];
-  },
-  fuzzy(cell,term,threshold){
-    return cell.split(/\s+/).some(w=>this.lev(w,term)<=threshold);
-  },
-  // Precompute regex objects / lowercased terms / parsed numeric & date bounds
-  // once per search instead of once per row.
-  compileCondition(cond){
-    const cs = cond.caseSensitive;
-    const c = Object.assign({}, cond);
-    c.lcValue  = cs ? (cond.value||'')  : (cond.value||'').toLowerCase();
-    c.lcValue2 = cs ? (cond.value2||'') : (cond.value2||'').toLowerCase();
-    if (cond.operator === 'regex') {
-      try { c.compiledRegex = new RegExp(cond.value, cs ? '' : 'i'); }
-      catch(e) { c.compiledRegex = null; }
-    } else if (cond.operator === 'fuzzy') {
-      c.fuzzyThreshold = Math.max(1, Math.floor((cond.value||'').length*.35));
-    } else if (cond.operator.indexOf('num_') === 0) {
-      c.numValue  = parseFloat(cond.value);
-      c.numValue2 = parseFloat(cond.value2);
-    } else if (cond.operator.indexOf('date_') === 0) {
-      c.dateValue  = new Date(cond.value);
-      c.dateValue2 = new Date(cond.value2);
-    }
-    return c;
-  },
-  compileQuery(query){
-    return {
-      rootLogic: query.rootLogic,
-      groups: query.groups.map(g => ({ logic:g.logic, conditions:g.conditions.map(c=>this.compileCondition(c)) }))
-    };
-  },
-  testRaw(raw,cond){
-    const val=raw!==null&&raw!==undefined?String(raw):'';
-    const cs=cond.caseSensitive;
-    const cv=cs?val:val.toLowerCase();
-    const sv=cond.lcValue;
-    switch(cond.operator){
-      case 'contains':     return cv.includes(sv);
-      case 'not_contains': return !cv.includes(sv);
-      case 'equals':       return cv===sv;
-      case 'not_equals':   return cv!==sv;
-      case 'starts_with':  return cv.startsWith(sv);
-      case 'ends_with':    return cv.endsWith(sv);
-      case 'is_empty':     return val.trim()==='';
-      case 'is_not_empty': return val.trim()!=='';
-      case 'fuzzy':         return this.fuzzy(cv,sv,cond.fuzzyThreshold);
-      case 'regex':         return cond.compiledRegex ? cond.compiledRegex.test(val) : false;
-      case 'num_eq':      {const n=parseFloat(val);return !isNaN(n)&&n===cond.numValue;}
-      case 'num_gt':      {const n=parseFloat(val);return !isNaN(n)&&n>cond.numValue;}
-      case 'num_gte':     {const n=parseFloat(val);return !isNaN(n)&&n>=cond.numValue;}
-      case 'num_lt':      {const n=parseFloat(val);return !isNaN(n)&&n<cond.numValue;}
-      case 'num_lte':     {const n=parseFloat(val);return !isNaN(n)&&n<=cond.numValue;}
-      case 'num_between': {const n=parseFloat(val);return !isNaN(n)&&!isNaN(cond.numValue)&&!isNaN(cond.numValue2)&&n>=cond.numValue&&n<=cond.numValue2;}
-      case 'date_before':  {const d=new Date(val);return !isNaN(d)&&!isNaN(cond.dateValue)&&d<cond.dateValue;}
-      case 'date_after':   {const d=new Date(val);return !isNaN(d)&&!isNaN(cond.dateValue)&&d>cond.dateValue;}
-      case 'date_on':      {const d=new Date(val);return !isNaN(d)&&!isNaN(cond.dateValue)&&d.toDateString()===cond.dateValue.toDateString();}
-      case 'date_between': {const d=new Date(val);return !isNaN(d)&&!isNaN(cond.dateValue)&&!isNaN(cond.dateValue2)&&d>=cond.dateValue&&d<=cond.dateValue2;}
-      default: return false;
-    }
-  },
-  // testRaw() never reads cond.negate, so we avoid allocating a throwaway
-  // {...cond, negate:false} object or an index array on every row.
-  evalCond(rowData,headers,cond){
-    if (cond.column === '*') {
-      if (cond.negate) {
-        let anyPos = false;
-        for (let i=0; i<rowData.length; i++) { if (this.testRaw(rowData[i],cond)) { anyPos=true; break; } }
-        if (anyPos) return { matched:false, cols:[] };
-        const cols = []; for (let i=0; i<rowData.length; i++) cols.push(i);
-        return { matched:true, cols };
-      }
-      const matchedCols = [];
-      for (let i=0; i<rowData.length; i++) { if (this.testRaw(rowData[i],cond)) matchedCols.push(i); }
-      return { matched:matchedCols.length>0, cols:matchedCols };
-    }
-    const i = headers.indexOf(cond.column);
-    if (i<0) return { matched:false, cols:[] };
-    const raw = this.testRaw(rowData[i],cond);
-    const hit = cond.negate ? !raw : raw;
-    return { matched:hit, cols: hit?[i]:[] };
-  },
-  evalGroup(rowData,headers,group){
-    const res=group.conditions.map(c=>this.evalCond(rowData,headers,c));
-    const matched=group.logic==='AND'?res.every(r=>r.matched):res.some(r=>r.matched);
-    return {matched, cols:[...new Set(res.filter(r=>r.matched).flatMap(r=>r.cols))]};
-  },
-  evalQuery(rowData,headers,compiledQuery){
-    const res=compiledQuery.groups.map(g=>this.evalGroup(rowData,headers,g));
-    const matched=compiledQuery.rootLogic==='AND'?res.every(r=>r.matched):res.some(r=>r.matched);
-    return {matched, cols:[...new Set(res.filter(r=>r.matched).flatMap(r=>r.cols))]};
-  },
-};
-
-/* ══════════════════════════════════════════════════════════════
-   SEARCH RUNNER — streaming parse + search
-   Each file is fully parsed just before it is searched, then its
-   rows are immediately discarded so peak RAM = one file at a time.
-   Results stream to the UI as soon as each file finishes.
+   SEARCH RUNNER — worker is persistent; only the query is sent
 ═══════════════════════════════════════════════════════════════ */
 const SR = {
-  _cancelled: false,
-
   start() {
     if (!S.files.length) { UI.toast('Upload files first', 'warn'); return; }
-    if (S.files.some(f=>f.loading)) { UI.toast('Files still scanning, please wait…', 'warn'); return; }
+    if (S.files.some(f => f.loading)) { UI.toast('Files still loading, please wait…', 'warn'); return; }
 
-    const activeConds = S.query.groups.flatMap(g=>g.conditions)
+    const activeConds = S.query.groups.flatMap(g => g.conditions)
       .filter(c => !['is_empty','is_not_empty'].includes(c.operator) && !c.value.trim());
     if (activeConds.length) { UI.toast('Fill in all condition values', 'warn'); return; }
 
-    const filesToSearch = S.files
+    // Build lightweight search request — NO row data sent to worker
+    const fileIds = {};       // { fileId: true }
+    const enabledSheets = {}; // { fileId: { sheetName: true } }
+    let totalRows = 0;
+
+    S.files
       .filter(f => !f.error && S.typeFilter.has(f.fileType))
-      .filter(f => (f.sections||[]).some(s => s.enabled));
+      .forEach(f => {
+        const active = f.sheets.filter(s => s.enabled);
+        if (!active.length) return;
+        fileIds[f.id] = true;
+        enabledSheets[f.id] = {};
+        active.forEach(s => { enabledSheets[f.id][s.name] = true; });
+        totalRows += active.reduce((a, s) => a + (s.rowCount ?? s.rows?.length ?? 0), 0);
+      });
 
-    if (!filesToSearch.length) { UI.toast('No sections selected — check Section Filter panel', 'warn'); return; }
-
-    // Collapse sidebar panels for full results view
-    UI.collapseAllPanels();
-    RR.clear();
-    S.matchCount = 0;
-    this._cancelled = false;
+    if (!Object.keys(fileIds).length) { UI.toast('No sections selected — check Section Filter panel', 'warn'); return; }
 
     const query = {
       rootLogic: S.query.rootLogic,
-      groups: S.query.groups.map(g=>({ logic:g.logic, conditions:g.conditions.map(c=>({...c})) }))
+      groups: S.query.groups.map(g => ({logic:g.logic, conditions:g.conditions.map(c => ({...c}))}))
     };
-    const compiledQuery = MatchEngine.compileQuery(query);
-    const opts = {
-      useHeader: $('uts-opt-first-row-header').checked,
-      trimCells: $('uts-opt-trim-cells').checked,
-    };
+    const maxResults = parseInt($('opt-max-results').value) || 5000;
 
+    RR.clear();
+    S.matchCount = 0;
     UI.setSearching(true);
     UI.setProgress(0, 'Starting…');
-    $('uts-main-title').textContent = 'Searching…';
-    $('uts-main-sub').textContent = `0 of ${filesToSearch.length} file${filesToSearch.length!==1?'s':''} searched`;
+    $('main-title').textContent = 'Searching…';
+    $('main-sub').textContent = 'Processing files in background…';
 
-    let fileIdx = 0, totalRows = 0, matchCount = 0;
-
-    const processNextFile = async () => {
-      if (this._cancelled || fileIdx >= filesToSearch.length) {
-        this._finish(matchCount, totalRows, this._cancelled);
-        return;
+    // Worker is persistent — just attach a fresh message handler for this search
+    S.worker.onmessage = e => {
+      const {type, ...msg} = e.data;
+      switch(type) {
+        case 'progress':
+          UI.setProgress(Math.min(98, (msg.done / Math.max(1, totalRows)) * 100),
+            `${fmtNum(msg.done)} scanned · ${fmtNum(msg.match)} matches · ${msg.file}`);
+          break;
+        case 'results':
+          S.matchCount += msg.batch.length;
+          RR.addBatch(msg.batch);
+          break;
+        case 'done':
+          this._finish(msg.matchCount, msg.totalRows, msg.truncated, false);
+          break;
+        case 'cancelled':
+          this._finish(msg.matchCount, msg.totalRows, false, true);
+          break;
       }
-
-      const fileEntry = filesToSearch[fileIdx++];
-      const cfg = FILE_TYPE_CONFIG[fileEntry.fileType];
-      const filePct = ((fileIdx - 1) / filesToSearch.length) * 100;
-
-      UI.setProgress(filePct, `Parsing ${fileEntry.name}… (${fileIdx} of ${filesToSearch.length})`);
-      $('uts-main-sub').textContent = `File ${fileIdx} of ${filesToSearch.length}: ${fileEntry.name}`;
-
-      // ── Full parse (rows are created here, held briefly, then discarded) ──
-      let sheets;
-      try {
-        sheets = await PARSERS[cfg.parse](fileEntry._file, opts);
-      } catch(err) {
-        console.warn(`Parse error for ${fileEntry.name}:`, err);
-        if (!S.errors.some(e => e.name === fileEntry.name))
-          S.errors.push({ name: fileEntry.name, reason: `Search-time parse failed: ${err.message}` });
-        FM._renderErrorPanel();
-        setTimeout(processNextFile, 0);
-        return;
-      }
-
-      // Enabled section names for this file
-      const enabledSections = new Set(
-        (fileEntry.sections||[]).filter(s => s.enabled).map(s => s.name)
-      );
-
-      // ── Time-sliced search through this file's sheets ──
-      let si = 0, ri = 0, batch = [];
-
-      const flush = () => {
-        if (batch.length) { RR.addBatch(batch.slice()); S.matchCount += batch.length; batch = []; }
-      };
-
-      const searchChunk = () => {
-        if (this._cancelled) { flush(); this._finish(matchCount, totalRows, true); return; }
-
-        const deadline = performance.now() + 14; // ~14ms per chunk → smooth 60fps
-        while (performance.now() < deadline) {
-          // Advance past sheets that don't exist or aren't enabled
-          while (si < sheets.length && !enabledSections.has(sheets[si].name)) si++;
-          if (si >= sheets.length) {
-            // This file is done — discard rows and move on
-            flush();
-            sheets = null;
-            const donePct = (fileIdx / filesToSearch.length) * 100;
-            UI.setProgress(donePct, `${fmtNum(totalRows)} scanned · ${fmtNum(matchCount)} matches`);
-            setTimeout(processNextFile, 0);
-            return;
-          }
-
-          const sheet = sheets[si];
-          if (ri >= sheet.rows.length) { si++; ri = 0; continue; }
-
-          totalRows++;
-          const { matched, cols } = MatchEngine.evalQuery(sheet.rows[ri], sheet.headers, compiledQuery);
-          if (matched) {
-            matchCount++;
-            batch.push({
-              fileId: fileEntry.id, fileName: fileEntry.name, fileType: fileEntry.fileType,
-              sheetName: sheet.name, rowNum: ri + 1,
-              rowData: sheet.rows[ri], headers: sheet.headers, matchedCols: cols
-            });
-            if (batch.length >= 80) flush();
-          }
-          ri++;
-        }
-
-        // Yield to browser between chunks
-        UI.setProgress(
-          filePct + ((si / Math.max(1, sheets.length)) * (100 / filesToSearch.length)),
-          `${fileEntry.name} — ${fmtNum(totalRows)} scanned · ${fmtNum(matchCount)} matches`
-        );
-        setTimeout(searchChunk, 0);
-      };
-
-      searchChunk();
     };
 
-    processNextFile();
+    S.worker.onerror = err => {
+      console.error('Worker error:', err);
+      UI.toast('Search error: ' + err.message, 'warn');
+      this._finish(S.matchCount, 0, false, false);
+    };
+
+    // Only the query travels over postMessage — rows stay in worker memory
+    S.worker.postMessage({type:'search', payload:{fileIds, enabledSheets, query, maxResults}});
   },
 
-  cancel() { this._cancelled = true; },
+  cancel() {
+    if (S.worker) S.worker.postMessage({type:'cancel'});
+  },
 
-  _finish(matchCount, totalRows, cancelled) {
+  _finish(matchCount, totalRows, truncated, cancelled) {
     UI.setSearching(false);
     UI.setProgress(100, 'Done');
     setTimeout(() => UI.showProgress(false), 800);
-    $('uts-btn-clear-results').disabled = matchCount === 0;
+    $('btn-clear-results').disabled = matchCount === 0;
 
     if (cancelled) {
-      UI.toast(`Cancelled · ${fmtNum(matchCount)} matches shown`, 'warn');
-      $('uts-main-title').textContent = 'Search cancelled';
-      $('uts-main-sub').textContent = `${fmtNum(matchCount)} matches found before cancel`;
+      UI.toast(`Search cancelled · ${fmtNum(matchCount)} results shown`, 'warn');
+      $('main-title').textContent = 'Search cancelled';
+      $('main-sub').textContent = `${fmtNum(matchCount)} matches shown`;
     } else if (matchCount === 0) {
       RR.showNoResults();
-      $('uts-main-title').textContent = 'No matches found';
-      $('uts-main-sub').textContent = 'Try different keywords, fewer conditions, or switch AND → OR';
+      $('main-title').textContent = 'No matches found';
+      $('main-sub').textContent = 'Try different keywords, fewer conditions, or switch AND → OR';
     } else {
-      UI.toast(`${fmtNum(matchCount)} matches found`, 'ok');
-      $('uts-main-title').textContent = `${fmtNum(matchCount)} matches`;
-      $('uts-main-sub').textContent = `across ${fmtNum(totalRows)} entries scanned`;
+      const warn = truncated ? ' (truncated — increase max matches)' : '';
+      UI.toast(`${fmtNum(matchCount)} matches found${truncated?' (truncated)':''}`, truncated?'warn':'ok');
+      $('main-title').textContent = `${fmtNum(matchCount)} matches`;
+      $('main-sub').textContent = `across ${fmtNum(totalRows)} entries scanned${warn}`;
     }
 
     RR.renderToolbar(matchCount);
+    // Worker stays alive — do NOT terminate
   },
 };
 
@@ -1987,9 +2062,9 @@ const RR = {
 
   clear() {
     this._groups = {};
-    const cont = $('uts-results-container');
+    const cont = $('results-container');
     cont.innerHTML = `
-      <div class="state-card" id="uts-empty-state">
+      <div class="state-card" id="empty-state">
         <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -2000,15 +2075,15 @@ const RR = {
         <p>Upload files, build your query, then click <strong>Search</strong>.</p>
         <span class="hint">All processing happens locally — your data never leaves your device.</span>
       </div>`;
-    $('uts-results-toolbar').style.display = 'none';
-    $('uts-results-toolbar').innerHTML = '';
-    $('uts-btn-clear-results').disabled = true;
-    $('uts-main-title').textContent = 'Ready to Search';
-    $('uts-main-sub').textContent = 'Upload documents, build your query, then click Search';
+    $('results-toolbar').style.display = 'none';
+    $('results-toolbar').innerHTML = '';
+    $('btn-clear-results').disabled = true;
+    $('main-title').textContent = 'Ready to Search';
+    $('main-sub').textContent = 'Upload documents, build your query, then click Search';
   },
 
   showNoResults() {
-    $('uts-results-container').innerHTML = `
+    $('results-container').innerHTML = `
       <div class="state-card">
         <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -2055,8 +2130,8 @@ const RR = {
   },
 
   addBatch(batch) {
-    const cont = $('uts-results-container');
-    const es = $('uts-empty-state');
+    const cont = $('results-container');
+    const es = $('empty-state');
     if (es) es.remove();
 
     const terms = this._getHighlightTerms();
@@ -2099,7 +2174,7 @@ const RR = {
     const badge = `<span class="type-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}</span>`;
 
     const innerBody = g.useSnippet
-      ? `<div class="snip-list" id="uts-snip-${CSS.escape(key)}"></div>`
+      ? `<div class="snip-list" id="snip-${CSS.escape(key)}"></div>`
       : `<div class="rg-tbl-wrap">
           <table class="rg-tbl">
             <thead><tr>
@@ -2119,11 +2194,11 @@ const RR = {
           ${esc(g.fileName)}
         </span>
         <span class="rg-sheet">${esc(g.sheetName)}</span>
-        <span class="rg-count" id="uts-rgc-${CSS.escape(key)}">0 matches</span>
+        <span class="rg-count" id="rgc-${CSS.escape(key)}">0 matches</span>
       </div>
       <div class="rg-body">
         ${innerBody}
-        <div class="rg-footer" id="uts-rgf-${CSS.escape(key)}">
+        <div class="rg-footer" id="rgf-${CSS.escape(key)}">
           <span class="rg-shown"></span>
           <button class="btn-load-more" onclick="RR.loadMore('${key}')">Load more</button>
         </div>
@@ -2157,9 +2232,9 @@ const RR = {
 
   _updateGroupFooter(key) {
     const g = this._groups[key];
-    const countEl = document.getElementById('uts-rgc-' + CSS.escape(key));
+    const countEl = document.getElementById('rgc-' + CSS.escape(key));
     if (countEl) countEl.textContent = `${fmtNum(g.allRows.length)} match${g.allRows.length!==1?'es':''}`;
-    const footer = document.getElementById('uts-rgf-' + CSS.escape(key));
+    const footer = document.getElementById('rgf-' + CSS.escape(key));
     if (!footer) return;
     const remaining = g.allRows.length - g.shown;
     footer.querySelector('.rg-shown').textContent =
@@ -2204,7 +2279,7 @@ const RR = {
   },
 
   renderToolbar(matchCount) {
-    const el = $('uts-results-toolbar');
+    const el = $('results-toolbar');
     if (!matchCount) { el.style.display='none'; return; }
     const groupCount = Object.keys(this._groups).length;
     el.style.display = 'block';
@@ -2244,27 +2319,6 @@ const EX = {
     return Object.values(RR._groups).flatMap(g => g.allRows);
   },
 
-  // Builds one unified table for ALL matches regardless of source file/type.
-  // Columns are a union of every distinct header seen across results (in
-  // first-seen order), so Excel column data and PDF/DOCX/PPTX/text "Text"
-  // rows can all sit in the same sheet — rows just leave unrelated columns blank.
-  _buildCombined(rows) {
-    const headerUnion = [];
-    const headerIndex = {};
-    rows.forEach(r => {
-      r.headers.forEach(h => {
-        if (!(h in headerIndex)) { headerIndex[h] = headerUnion.length; headerUnion.push(h); }
-      });
-    });
-    const dataRows = rows.map(r => {
-      const cfg = FILE_TYPE_CONFIG[r.fileType] || FILE_TYPE_CONFIG.unknown;
-      const vals = new Array(headerUnion.length).fill('');
-      r.headers.forEach((h,i) => { vals[headerIndex[h]] = r.rowData[i] ?? ''; });
-      return [r.rowNum, r.fileName, cfg.label, r.sheetName, ...vals];
-    });
-    return { columns: ['#','File','Type','Section', ...headerUnion], dataRows };
-  },
-
   toXLSX() {
     const rows = this._collectRows();
     if (!rows.length) { UI.toast('No results to export', 'warn'); return; }
@@ -2289,10 +2343,22 @@ const EX = {
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(meta), 'Search Info');
 
-    // Sheet 2: ALL matches combined into a single sheet (not split by file/section)
-    const { columns, dataRows } = this._buildCombined(rows);
-    const ws = XLSX.utils.aoa_to_sheet([columns, ...dataRows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'All Results');
+    // Sheet 2+: grouped results by file+section
+    const groups = {};
+    rows.forEach(r => {
+      const key = `${r.fileName}|${r.sheetName}`.slice(0,31);
+      if (!groups[key]) groups[key] = {headers:r.headers, rows:[], name:key};
+      groups[key].rows.push(r);
+    });
+
+    Object.values(groups).forEach(g => {
+      const data = [
+        ['#','File','Section',...g.headers],
+        ...g.rows.map(r => [r.rowNum, r.fileName, r.sheetName, ...r.rowData.map(v=>v??'')])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, g.name.replace(/[\\/*?[\]:]/g,'_').slice(0,31));
+    });
 
     XLSX.writeFile(wb, `search_results_${Date.now()}.xlsx`);
     UI.toast(`Exported ${rows.length} matches to Excel`, 'ok');
@@ -2302,10 +2368,11 @@ const EX = {
     const rows = this._collectRows();
     if (!rows.length) { UI.toast('No results to export', 'warn'); return; }
 
-    const { columns, dataRows } = this._buildCombined(rows);
+    const headers = rows[0]?.headers || [];
     const csvRows = [
-      columns.map(EX._csvCell).join(','),
-      ...dataRows.map(r => r.map(EX._csvCell).join(','))
+      ['#','File','Section',...headers].map(EX._csvCell).join(','),
+      ...rows.map(r => [r.rowNum, r.fileName, r.sheetName, ...r.rowData.map(v=>v??'')]
+        .map(EX._csvCell).join(','))
     ];
     const blob = new Blob(['\ufeff'+csvRows.join('\r\n')], {type:'text/csv;charset=utf-8'});
     const a = document.createElement('a');
@@ -2324,10 +2391,81 @@ const EX = {
 };
 
 /* ══════════════════════════════════════════════════════════════
+   WORKER FACTORY — real Worker where allowed, FakeWorker elsewhere
+   (Claude preview / sandboxed iframes block blob: URLs; Blogger
+   runs from a real origin so real Workers work fine there)
+═══════════════════════════════════════════════════════════════ */
+
+/**
+ * FakeWorker: same postMessage / onmessage interface as a real Worker.
+ * Runs the worker source on the main thread via Function() + setTimeout.
+ * The search loop will block briefly while processing, but correctness
+ * and the full persistent-store architecture are preserved exactly.
+ */
+class FakeWorker {
+  constructor(src) {
+    this.onmessage = null;
+    this.onerror   = null;
+
+    // Build a scoped "self" that mirrors the Worker global
+    const _self = {
+      onmessage: null,
+      postMessage: (data) => {
+        // Deliver back to main thread asynchronously so call-order is preserved
+        const h = this.onmessage;
+        if (h) setTimeout(() => h({ data }), 0);
+      },
+    };
+
+    try {
+      // Execute the worker source — this sets _self.onmessage = function(e){…}
+      // eslint-disable-next-line no-new-func
+      new Function('self', src)(_self);
+    } catch (e) {
+      console.error('FakeWorker init:', e);
+    }
+
+    this._self = _self;
+  }
+
+  /** Main thread → worker */
+  postMessage(data) {
+    if (!this._self?.onmessage) return;
+    const handler = this._self.onmessage;
+    // Keep delivery async so callers never get synchronous re-entrancy
+    setTimeout(() => {
+      try { handler({ data }); }
+      catch (e) { if (this.onerror) this.onerror(e); }
+    }, 0);
+  }
+
+  terminate() { this._self = null; }
+}
+
+/** Try real Worker (blob: URL), silently fall back to FakeWorker */
+function _createWorker(src) {
+  try {
+    const blob = new Blob([src], { type: 'application/javascript' });
+    const url  = URL.createObjectURL(blob);
+    const w    = new Worker(url);
+    URL.revokeObjectURL(url);
+    return w;
+  } catch (_) {
+    // Sandboxed environment (Claude preview, some iframe hosts) —
+    // blob: Workers are blocked; run on main thread instead.
+    console.info('Worker blocked — using main-thread fallback');
+    return new FakeWorker(src);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
    BOOTSTRAP
 ═══════════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   QB.init();
+
+  // Persistent worker — row data lives here after parse; searches send only the query.
+  S.worker = _createWorker(WORKER_SRC);
 
   // Set initial panel states
   document.querySelectorAll('.panel-hdr').forEach(h => {
@@ -2343,5 +2481,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Expose all modules for inline onclick handlers
 Object.assign(window, { FM, QB, SR, RR, EX, UI });
+// Expose FM._showAllFiles for inline onclick
+window.FM = FM;
 </script>
-</div><!-- /uts-root -->
+</body>
+</html>
