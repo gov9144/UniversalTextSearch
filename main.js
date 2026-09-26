@@ -5,7 +5,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1100,
     height: 800,
-    title: "GL Tran GL-Wise Consolidated Report Converter",
+    title: "Universal-Text-Search",
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
