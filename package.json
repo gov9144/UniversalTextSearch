@@ -1,15 +1,15 @@
 {
-  "name": "gl-report-converter",
+  "name": "Universal-Text-Search",
   "version": "1.0.0",
-  "description": "GL Tran GL-Wise Consolidated Report Converter",
+  "description": "Universal-Text-Search",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.finacle.glreportconverter",
-    "productName": "GLReportConverter",
+    "appId": "com.finacle.Universal-Text-Search",
+    "productName": "Universal-Text-Search",
     "directories": {
       "output": "dist"
     },
